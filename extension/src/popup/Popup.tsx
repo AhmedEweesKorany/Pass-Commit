@@ -24,10 +24,19 @@ export default function Popup() {
     const initializePopup = async () => {
         try {
             // Get current tab domain
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab?.url) {
-                const url = new URL(tab.url);
-                setCurrentDomain(url.hostname);
+            if (typeof chrome !== 'undefined' && chrome.tabs) {
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tab?.url) {
+                    try {
+                        const url = new URL(tab.url);
+                        setCurrentDomain(url.hostname);
+                    } catch (e) {
+                        console.warn('Invalid URL in tab:', tab.url);
+                    }
+                }
+            } else {
+                // Fallback for development in regular browser tab
+                setCurrentDomain('localhost');
             }
 
             // Check auth state via background script
