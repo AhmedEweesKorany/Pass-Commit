@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { VaultService } from './vault.service';
-import { VaultController } from './vault.controller';
 import { VaultEntry, VaultEntrySchema } from './vault-entry.schema';
+import { VaultController } from './vault.controller';
+import { VaultService } from './vault.service';
+
 
 @Module({
   imports: [

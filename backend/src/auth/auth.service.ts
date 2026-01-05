@@ -2,8 +2,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/user.schema';
+import { UsersService } from 'src/users/users.service';
+import { User } from 'src/users/user.schema';
 
 export interface JwtPayload {
   sub: string;
