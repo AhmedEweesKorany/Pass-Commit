@@ -68,7 +68,7 @@ export async function deriveKey(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as any,
       iterations: PBKDF2_ITERATIONS,
       hash: 'SHA-256',
     },
@@ -96,7 +96,7 @@ export async function encrypt(
   const ciphertext = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
-      iv,
+      iv: iv as any,
     },
     key,
     encodedData
@@ -122,10 +122,10 @@ export async function decrypt(
   const decrypted = await crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv,
+      iv: iv as any,
     },
     key,
-    ciphertext
+    ciphertext as any
   );
 
   return new TextDecoder().decode(decrypted);

@@ -57,7 +57,8 @@ export type MessageType =
   | 'LOGIN'
   | 'LOGOUT'
   | 'SET_MASTER_PASSWORD'
-  | 'UNLOCK_VAULT';
+  | 'UNLOCK_VAULT'
+  | 'GET_DECRYPTED_PASSWORD';
 
 export interface Message<T = unknown> {
   type: MessageType;
