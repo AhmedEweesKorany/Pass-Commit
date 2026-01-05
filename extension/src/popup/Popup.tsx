@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Search, Key, Shield, Settings, LogOut, Lock, Plus } from 'lucide-react';
 import { Credential, AuthState } from '../types';
-import SearchBar from './components/SearchBar';
-import CredentialList from './components/CredentialList';
-import QuickGenerator from './components/QuickGenerator';
 import LoginScreen from './components/LoginScreen';
 import MasterPasswordScreen from './components/MasterPasswordScreen';
+import SearchBar from './components/SearchBar';
+import QuickGenerator from './components/QuickGenerator';
+import CredentialList from './components/CredentialList';
+
 
 export default function Popup() {
     const [authState, setAuthState] = useState<AuthState | null>(null);
