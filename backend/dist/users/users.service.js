@@ -22,8 +22,11 @@ let UsersService = class UsersService {
         this.userModel = userModel;
     }
     async create(createUserDto) {
+        console.log('Creating user in MongoDB:', createUserDto.email);
         const user = new this.userModel(createUserDto);
-        return user.save();
+        const savedUser = await user.save();
+        console.log('User saved successfully with ID:', savedUser._id);
+        return savedUser;
     }
     async findById(id) {
         return this.userModel.findById(id).exec();
@@ -35,6 +38,7 @@ let UsersService = class UsersService {
         return this.userModel.findOne({ googleId }).exec();
     }
     async updateSalt(userId, salt) {
+        console.log('Updating salt for user:', userId);
         return this.userModel
             .findByIdAndUpdate(userId, { salt }, { new: true })
             .exec();

@@ -1,12 +1,12 @@
 import { Model } from 'mongoose';
 import { VaultEntry, VaultEntryDocument, EncryptedData } from './vault-entry.schema';
-export interface CreateVaultEntryDto {
+export declare class CreateVaultEntryDto {
     domain: string;
     username: string;
     encryptedPassword: EncryptedData;
     notes?: string;
 }
-export interface UpdateVaultEntryDto {
+export declare class UpdateVaultEntryDto {
     domain?: string;
     username?: string;
     encryptedPassword?: EncryptedData;

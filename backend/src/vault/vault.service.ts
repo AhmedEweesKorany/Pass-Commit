@@ -1,21 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { IsString, IsOptional, ValidateNested, IsNotEmpty, IsObject } from 'class-validator';
+import { Type } from 'class-transformer';
 import { VaultEntry, VaultEntryDocument, EncryptedData } from './vault-entry.schema';
 
-export interface CreateVaultEntryDto {
-  domain: string;
-  username: string;
-  encryptedPassword: EncryptedData;
+export class CreateVaultEntryDto {
+  @IsString()
+  @IsNotEmpty()
+  domain!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => EncryptedData)
+  encryptedPassword!: EncryptedData;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 }
 
-export interface UpdateVaultEntryDto {
+export class UpdateVaultEntryDto {
+  @IsString()
+  @IsOptional()
   domain?: string;
+
+  @IsString()
+  @IsOptional()
   username?: string;
+
+  @IsObject()
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EncryptedData)
   encryptedPassword?: EncryptedData;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 }
+
 
 @Injectable()
 export class VaultService {
@@ -28,11 +56,14 @@ export class VaultService {
     userId: string,
     createDto: CreateVaultEntryDto,
   ): Promise<VaultEntry> {
+    console.log(`Creating vault entry for user ${userId} and domain ${createDto.domain}`);
     const entry = new this.vaultEntryModel({
       userId: new Types.ObjectId(userId),
       ...createDto,
     });
-    return entry.save();
+    const savedEntry = await entry.save();
+    console.log('Vault entry saved with ID:', savedEntry._id);
+    return savedEntry;
   }
 
   async findAllByUser(userId: string): Promise<VaultEntry[]> {
@@ -66,6 +97,7 @@ export class VaultService {
     userId: string,
     updateDto: UpdateVaultEntryDto,
   ): Promise<VaultEntry | null> {
+    console.log(`Updating vault entry ${id} for user ${userId}`);
     return this.vaultEntryModel
       .findOneAndUpdate(
         {

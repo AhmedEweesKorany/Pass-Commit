@@ -12,21 +12,75 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VaultService = void 0;
+exports.VaultService = exports.UpdateVaultEntryDto = exports.CreateVaultEntryDto = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
+const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const vault_entry_schema_1 = require("./vault-entry.schema");
+class CreateVaultEntryDto {
+}
+exports.CreateVaultEntryDto = CreateVaultEntryDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateVaultEntryDto.prototype, "domain", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], CreateVaultEntryDto.prototype, "username", void 0);
+__decorate([
+    (0, class_validator_1.IsObject)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => vault_entry_schema_1.EncryptedData),
+    __metadata("design:type", vault_entry_schema_1.EncryptedData)
+], CreateVaultEntryDto.prototype, "encryptedPassword", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CreateVaultEntryDto.prototype, "notes", void 0);
+class UpdateVaultEntryDto {
+}
+exports.UpdateVaultEntryDto = UpdateVaultEntryDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateVaultEntryDto.prototype, "domain", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateVaultEntryDto.prototype, "username", void 0);
+__decorate([
+    (0, class_validator_1.IsObject)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => vault_entry_schema_1.EncryptedData),
+    __metadata("design:type", vault_entry_schema_1.EncryptedData)
+], UpdateVaultEntryDto.prototype, "encryptedPassword", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateVaultEntryDto.prototype, "notes", void 0);
 let VaultService = class VaultService {
     constructor(vaultEntryModel) {
         this.vaultEntryModel = vaultEntryModel;
     }
     async create(userId, createDto) {
+        console.log(`Creating vault entry for user ${userId} and domain ${createDto.domain}`);
         const entry = new this.vaultEntryModel({
             userId: new mongoose_2.Types.ObjectId(userId),
             ...createDto,
         });
-        return entry.save();
+        const savedEntry = await entry.save();
+        console.log('Vault entry saved with ID:', savedEntry._id);
+        return savedEntry;
     }
     async findAllByUser(userId) {
         return this.vaultEntryModel
@@ -52,6 +106,7 @@ let VaultService = class VaultService {
             .exec();
     }
     async update(id, userId, updateDto) {
+        console.log(`Updating vault entry ${id} for user ${userId}`);
         return this.vaultEntryModel
             .findOneAndUpdate({
             _id: new mongoose_2.Types.ObjectId(id),

@@ -22,7 +22,7 @@ interface AuthenticatedRequest {
 }
 
 @Controller('vault')
-// @UseGuards(AuthGuard('jwt'), ThrottlerGuard)
+@UseGuards(AuthGuard('jwt'))
 export class VaultController {
   constructor(private readonly vaultService: VaultService) {}
 

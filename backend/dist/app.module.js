@@ -28,6 +28,15 @@ exports.AppModule = AppModule = __decorate([
                 imports: [config_1.ConfigModule],
                 useFactory: async (configService) => ({
                     uri: configService.get('MONGODB_URI'),
+                    connectionFactory: (connection) => {
+                        connection.on('connected', () => {
+                            console.log('MongoDB is connected to Cluster!');
+                        });
+                        connection.on('error', (err) => {
+                            console.error('MongoDB connection error:', err);
+                        });
+                        return connection;
+                    },
                 }),
                 inject: [config_1.ConfigService],
             }),

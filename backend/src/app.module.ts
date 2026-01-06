@@ -19,7 +19,16 @@ import { VaultModule } from './vault/vault.module';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'),
+        uri: configService.get<string>('MONGODB_URI'), 
+        connectionFactory: (connection: any) => { 
+          connection.on('connected', () => {
+            console.log('MongoDB is connected to Cluster!');
+          });
+          connection.on('error', (err: any) => {
+            console.error('MongoDB connection error:', err);
+          });
+          return connection;
+        },
       }),
       inject: [ConfigService],
     }),

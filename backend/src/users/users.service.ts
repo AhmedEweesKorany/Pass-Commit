@@ -17,8 +17,11 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
+    console.log('Creating user in MongoDB:', createUserDto.email);
     const user = new this.userModel(createUserDto);
-    return user.save();
+    const savedUser = await user.save();
+    console.log('User saved successfully with ID:', savedUser._id);
+    return savedUser;
   }
 
   async findById(id: string): Promise<User | null> {
@@ -34,6 +37,7 @@ export class UsersService {
   }
 
   async updateSalt(userId: string, salt: string): Promise<User | null> {
+    console.log('Updating salt for user:', userId);
     return this.userModel
       .findByIdAndUpdate(userId, { salt }, { new: true })
       .exec();

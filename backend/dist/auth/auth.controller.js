@@ -14,9 +14,14 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
+const class_validator_1 = require("class-validator");
 const auth_service_1 = require("./auth.service");
 class GoogleAuthDto {
 }
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], GoogleAuthDto.prototype, "token", void 0);
 let AuthController = class AuthController {
     constructor(authService) {
         this.authService = authService;

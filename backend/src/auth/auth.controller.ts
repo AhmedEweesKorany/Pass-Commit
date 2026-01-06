@@ -1,7 +1,9 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { IsString } from 'class-validator';
 import { AuthService, AuthResult } from './auth.service';
 
 class GoogleAuthDto {
+  @IsString()
   token!: string;
 }
 

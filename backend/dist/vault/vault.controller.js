@@ -14,6 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VaultController = void 0;
 const common_1 = require("@nestjs/common");
+const passport_1 = require("@nestjs/passport");
 const vault_service_1 = require("./vault.service");
 let VaultController = class VaultController {
     constructor(vaultService) {
@@ -50,7 +51,7 @@ __decorate([
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, vault_service_1.CreateVaultEntryDto]),
     __metadata("design:returntype", Promise)
 ], VaultController.prototype, "create", null);
 __decorate([
@@ -82,7 +83,7 @@ __decorate([
     __param(1, (0, common_1.Param)('id')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, Object]),
+    __metadata("design:paramtypes", [Object, String, vault_service_1.UpdateVaultEntryDto]),
     __metadata("design:returntype", Promise)
 ], VaultController.prototype, "update", null);
 __decorate([
@@ -112,6 +113,7 @@ __decorate([
 ], VaultController.prototype, "deleteAll", null);
 exports.VaultController = VaultController = __decorate([
     (0, common_1.Controller)('vault'),
+    (0, common_1.UseGuards)((0, passport_1.AuthGuard)('jwt')),
     __metadata("design:paramtypes", [vault_service_1.VaultService])
 ], VaultController);
 //# sourceMappingURL=vault.controller.js.map
