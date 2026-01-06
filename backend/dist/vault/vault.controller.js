@@ -21,6 +21,10 @@ let VaultController = class VaultController {
         this.vaultService = vaultService;
     }
     async create(req, createDto) {
+        console.log('=== VAULT CREATE REQUEST ===');
+        console.log('User:', JSON.stringify(req.user, null, 2));
+        console.log('User ID:', req.user?._id?.toString());
+        console.log('Create DTO:', JSON.stringify(createDto, null, 2));
         return this.vaultService.create(req.user._id.toString(), createDto);
     }
     async findAll(req) {
