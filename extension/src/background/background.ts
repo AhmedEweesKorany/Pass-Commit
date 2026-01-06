@@ -377,19 +377,31 @@ async function handleSaveCredential(payload: Partial<Credential>) {
       notes: payload.notes,
     };
 
+    console.log('=== SAVE CREDENTIAL DEBUG ===');
+    console.log('Credential data to save:', credentialData);
+    console.log('Encrypted password object:', encryptedPassword);
+
     // Sync to backend FIRST to get the real ID
     let backendId: string | null = null;
     try {
+      const requestBody = {
+        domain: credentialData.domain,
+        username: credentialData.username,
+        encryptedPassword, // Send actual object to backend (not stringified)
+        notes: credentialData.notes,
+      };
+      console.log('Sending to backend:', JSON.stringify(requestBody, null, 2));
+      
       const backendResult = await apiFetch('/vault', {
         method: 'POST',
-        body: JSON.stringify({
-          ...credentialData,
-          encryptedPassword, // Send actual object to backend
-        }),
+        body: JSON.stringify(requestBody),
       });
+      console.log('Backend result:', backendResult);
       backendId = backendResult._id || backendResult.id;
-    } catch (e) {
-      console.error('Failed to sync credential to backend', e);
+      console.log('Got backend ID:', backendId);
+    } catch (e: any) {
+      console.error('Failed to sync credential to backend:', e);
+      console.error('Error details:', e.message);
     }
 
     // Save locally with the backend ID if available
@@ -397,6 +409,7 @@ async function handleSaveCredential(payload: Partial<Credential>) {
       ...credentialData,
     }, backendId || undefined);
 
+    console.log('Saved credential locally:', credential);
     return { success: true, data: credential };
 
   } catch (error) {
