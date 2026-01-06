@@ -12,18 +12,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VaultEntrySchema = exports.VaultEntry = exports.EncryptedData = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
+const class_validator_1 = require("class-validator");
 class EncryptedData {
 }
 exports.EncryptedData = EncryptedData;
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], EncryptedData.prototype, "ciphertext", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], EncryptedData.prototype, "iv", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     (0, mongoose_1.Prop)({ required: true }),
     __metadata("design:type", String)
 ], EncryptedData.prototype, "salt", void 0);

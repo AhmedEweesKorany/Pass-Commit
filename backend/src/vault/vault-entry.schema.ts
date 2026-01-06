@@ -1,16 +1,23 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export type VaultEntryDocument = VaultEntry & Document;
 
 // Encrypted data structure
 export class EncryptedData {
+  @IsString()
+  @IsNotEmpty()
   @Prop({ required: true })
   ciphertext!: string;
 
+  @IsString()
+  @IsNotEmpty()
   @Prop({ required: true })
   iv!: string;
 
+  @IsString()
+  @IsNotEmpty()
   @Prop({ required: true })
   salt!: string;
 }
