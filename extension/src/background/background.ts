@@ -105,6 +105,15 @@ async function handleMessage(message: Message): Promise<unknown> {
     case 'EXPORT_VAULT':
       return handleExportVault();
 
+    case 'EXPORT_VAULT_CSV':
+      return handleExportVaultCSV();
+
+    case 'IMPORT_VAULT':
+      return handleImportVault(message.payload as { data: string; format: 'json' | 'csv' });
+
+    case 'CHANGE_MASTER_PASSWORD':
+      return handleChangeMasterPassword(message.payload as { currentPassword: string; newPassword: string });
+
     case 'AUTOFILL':
       return handleAutoFill(message.payload as { credentialId: string });
 
@@ -368,21 +377,25 @@ async function handleSaveCredential(payload: Partial<Credential>) {
       notes: payload.notes,
     };
 
-    // Save locally
-    const credential = await addCredential(credentialData);
-
-    // Sync to backend
+    // Sync to backend FIRST to get the real ID
+    let backendId: string | null = null;
     try {
-      await apiFetch('/vault', {
+      const backendResult = await apiFetch('/vault', {
         method: 'POST',
         body: JSON.stringify({
           ...credentialData,
           encryptedPassword, // Send actual object to backend
         }),
       });
+      backendId = backendResult._id || backendResult.id;
     } catch (e) {
       console.error('Failed to sync credential to backend', e);
     }
+
+    // Save locally with the backend ID if available
+    const credential = await addCredential({
+      ...credentialData,
+    }, backendId || undefined);
 
     return { success: true, data: credential };
 
@@ -543,6 +556,239 @@ async function handleExportVault() {
     return { success: true, data: exportedData };
   } catch (error) {
     console.error('Export vault error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+async function handleExportVaultCSV() {
+  try {
+    const credentials = await getVault();
+    if (!credentials) return { success: false, error: 'Vault is locked' };
+    
+    const key = getSessionKey();
+    if (!key) return { success: false, error: 'Vault is locked' };
+
+    // Decrypt all passwords for export
+    const rows: string[] = ['domain,username,password,notes'];
+    
+    for (const cred of credentials) {
+      const encryptedData = JSON.parse(cred.encryptedPassword);
+      const password = await decrypt(encryptedData, key);
+      // Escape CSV fields
+      const escapeCsv = (str: string) => {
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      rows.push(`${escapeCsv(cred.domain)},${escapeCsv(cred.username)},${escapeCsv(password)},${escapeCsv(cred.notes || '')}`);
+    }
+
+    return { success: true, data: rows.join('\n') };
+  } catch (error) {
+    console.error('Export vault CSV error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+async function handleImportVault(payload: { data: string; format: 'json' | 'csv' }) {
+  try {
+    const key = getSessionKey();
+    const salt = getSessionSalt();
+    
+    if (!key || !salt) {
+      return { success: false, error: 'Vault is locked' };
+    }
+
+    let entries: { domain: string; username: string; password: string; notes?: string }[] = [];
+
+    if (payload.format === 'json') {
+      const parsed = JSON.parse(payload.data);
+      // Handle both array and object with passwords array
+      entries = Array.isArray(parsed) ? parsed : (parsed.passwords || parsed.data || []);
+    } else if (payload.format === 'csv') {
+      const lines = payload.data.split('\n').filter(line => line.trim());
+      const header = lines[0].toLowerCase();
+      
+      // Find column indices
+      const headers = header.split(',').map(h => h.trim().replace(/"/g, ''));
+      const domainIdx = headers.findIndex(h => ['domain', 'url', 'website', 'site'].includes(h));
+      const usernameIdx = headers.findIndex(h => ['username', 'user', 'login', 'email'].includes(h));
+      const passwordIdx = headers.findIndex(h => ['password', 'pass', 'pwd'].includes(h));
+      const notesIdx = headers.findIndex(h => ['notes', 'note', 'comment', 'comments'].includes(h));
+
+      if (domainIdx === -1 || usernameIdx === -1 || passwordIdx === -1) {
+        return { success: false, error: 'CSV must have domain, username, and password columns' };
+      }
+
+      // Parse CSV rows (simple parsing, doesn't handle all edge cases)
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length > Math.max(domainIdx, usernameIdx, passwordIdx)) {
+          entries.push({
+            domain: values[domainIdx] || '',
+            username: values[usernameIdx] || '',
+            password: values[passwordIdx] || '',
+            notes: notesIdx >= 0 ? values[notesIdx] : undefined,
+          });
+        }
+      }
+    }
+
+    if (entries.length === 0) {
+      return { success: false, error: 'No valid entries found in import file' };
+    }
+
+    // Import each entry
+    let imported = 0;
+    for (const entry of entries) {
+      if (!entry.domain || !entry.username || !entry.password) continue;
+
+      // Encrypt the password
+      const encryptedPassword = await encrypt(entry.password, key, salt);
+      
+      const credentialData = {
+        domain: entry.domain,
+        username: entry.username,
+        encryptedPassword: JSON.stringify(encryptedPassword),
+        notes: entry.notes,
+      };
+
+      // Sync to backend first
+      let backendId: string | null = null;
+      try {
+        const backendResult = await apiFetch('/vault', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...credentialData,
+            encryptedPassword,
+          }),
+        });
+        backendId = backendResult._id || backendResult.id;
+      } catch (e) {
+        console.error('Failed to sync imported credential to backend', e);
+      }
+
+      // Save locally
+      await addCredential(credentialData, backendId || undefined);
+      imported++;
+    }
+
+    return { success: true, data: { imported } };
+  } catch (error) {
+    console.error('Import vault error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+// Simple CSV line parser that handles quoted fields
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
+async function handleChangeMasterPassword(payload: { currentPassword: string; newPassword: string }) {
+  try {
+    // First verify the current password
+    const currentKey = getSessionKey();
+    if (!currentKey) {
+      return { success: false, error: 'Vault is locked' };
+    }
+
+    // Get all credentials and decrypt them with current key
+    const credentials = await getVault();
+    if (!credentials) {
+      return { success: false, error: 'Failed to read vault' };
+    }
+
+    // Decrypt all passwords
+    const decryptedCredentials: { cred: Credential; password: string }[] = [];
+    for (const cred of credentials) {
+      const encryptedData = JSON.parse(cred.encryptedPassword);
+      const password = await decrypt(encryptedData, currentKey);
+      decryptedCredentials.push({ cred, password });
+    }
+
+    // Initialize with new password (this generates new salt and key)
+    await initializeVault(payload.newPassword);
+    
+    const newKey = getSessionKey();
+    const newSalt = getSessionSalt();
+
+    if (!newKey || !newSalt) {
+      return { success: false, error: 'Failed to create new encryption key' };
+    }
+
+    // Sync new salt to backend
+    try {
+      await apiFetch('/users/salt', {
+        method: 'POST',
+        body: JSON.stringify({ salt: arrayBufferToBase64(newSalt) }),
+      });
+    } catch (e) {
+      console.error('Failed to sync new salt to backend', e);
+    }
+
+    // Re-encrypt all credentials with new key
+    const reEncryptedCredentials: Credential[] = [];
+    for (const { cred, password } of decryptedCredentials) {
+      const newEncrypted = await encrypt(password, newKey, newSalt);
+      reEncryptedCredentials.push({
+        ...cred,
+        encryptedPassword: JSON.stringify(newEncrypted),
+        updatedAt: Date.now(),
+      });
+
+      // Update on backend
+      try {
+        await apiFetch(`/vault/${cred.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            domain: cred.domain,
+            username: cred.username,
+            encryptedPassword: newEncrypted,
+            notes: cred.notes,
+          }),
+        });
+      } catch (e) {
+        console.error('Failed to sync re-encrypted credential to backend', e);
+      }
+    }
+
+    // Save re-encrypted vault locally
+    await saveVault(reEncryptedCredentials);
+
+    // Update auth state
+    const authState = await getAuthState();
+    if (authState) {
+      await saveAuthState({ ...authState, hasMasterPassword: true });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Change master password error:', error);
     return { success: false, error: (error as Error).message };
   }
 }

@@ -225,12 +225,12 @@ export async function getVault(): Promise<Credential[] | null> {
 /**
  * Add credential to vault
  */
-export async function addCredential(credential: Omit<Credential, 'id' | 'createdAt' | 'updatedAt'>): Promise<Credential> {
+export async function addCredential(credential: Omit<Credential, 'id' | 'createdAt' | 'updatedAt'>, id?: string): Promise<Credential> {
   const vault = await getVault() || [];
   
   const newCredential: Credential = {
     ...credential,
-    id: crypto.randomUUID(),
+    id: id || crypto.randomUUID(),
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

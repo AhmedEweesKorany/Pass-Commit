@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Shield, Key, Settings, Download, Upload, Plus, Search, Trash2, Edit2, Save, X, Eye, EyeOff, ExternalLink, Globe, User, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Shield, Key, Settings, Download, Upload, Plus, Search, Trash2, Edit2, Save, X, Eye, EyeOff, ExternalLink, Globe, User, RefreshCw, Lock, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { Credential, AuthState, GeneratorOptions } from '../types';
 import { generatePassword, generateMemorablePassword, generateNumericPin } from '../utils/crypto';
 
@@ -13,6 +13,21 @@ export default function Options() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
     const [newCredential, setNewCredential] = useState<Partial<Credential> | null>(null);
+
+    // Change password modal state
+    const [showChangePassword, setShowChangePassword] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordLoading, setPasswordLoading] = useState(false);
+
+    // Import state
+    const [importLoading, setImportLoading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Status message
+    const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     // Generator state
     const [generatorOptions, setGeneratorOptions] = useState<GeneratorOptions>({
@@ -88,22 +103,110 @@ export default function Options() {
         }
     };
 
-    const handleExport = async () => {
+    const handleExport = async (format: 'json' | 'csv' = 'json') => {
         try {
-            const response = await chrome.runtime.sendMessage({ type: 'EXPORT_VAULT' });
-            if (response?.data) {
-                const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `passcommit-export-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+            if (format === 'json') {
+                const response = await chrome.runtime.sendMessage({ type: 'EXPORT_VAULT' });
+                if (response?.data) {
+                    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `passcommit-export-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setStatusMessage({ type: 'success', message: 'Passwords exported successfully!' });
+                }
+            } else {
+                const response = await chrome.runtime.sendMessage({ type: 'EXPORT_VAULT_CSV' });
+                if (response?.data) {
+                    const blob = new Blob([response.data], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `passcommit-export-${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setStatusMessage({ type: 'success', message: 'Passwords exported to CSV successfully!' });
+                }
             }
         } catch (error) {
             console.error('Failed to export vault:', error);
+            setStatusMessage({ type: 'error', message: 'Failed to export passwords' });
         }
+        setTimeout(() => setStatusMessage(null), 3000);
     };
+
+    const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setImportLoading(true);
+        try {
+            const content = await file.text();
+            const format = file.name.endsWith('.csv') ? 'csv' : 'json';
+
+            const response = await chrome.runtime.sendMessage({
+                type: 'IMPORT_VAULT',
+                payload: { data: content, format }
+            });
+
+            if (response?.success) {
+                setStatusMessage({ type: 'success', message: `Successfully imported ${response.data.imported} passwords!` });
+                await initializeOptions();
+            } else {
+                setStatusMessage({ type: 'error', message: response?.error || 'Failed to import passwords' });
+            }
+        } catch (error) {
+            console.error('Failed to import vault:', error);
+            setStatusMessage({ type: 'error', message: 'Failed to import passwords. Check file format.' });
+        } finally {
+            setImportLoading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+        setTimeout(() => setStatusMessage(null), 5000);
+    };
+
+    const handleChangeMasterPassword = async () => {
+        setPasswordError('');
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError('New passwords do not match');
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            setPasswordError('New password must be at least 8 characters');
+            return;
+        }
+
+        setPasswordLoading(true);
+        try {
+            const response = await chrome.runtime.sendMessage({
+                type: 'CHANGE_MASTER_PASSWORD',
+                payload: { currentPassword, newPassword }
+            });
+
+            if (response?.success) {
+                setStatusMessage({ type: 'success', message: 'Master password changed successfully!' });
+                setShowChangePassword(false);
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+            } else {
+                setPasswordError(response?.error || 'Failed to change password');
+            }
+        } catch (error) {
+            console.error('Failed to change master password:', error);
+            setPasswordError('Failed to change master password');
+        } finally {
+            setPasswordLoading(false);
+        }
+        setTimeout(() => setStatusMessage(null), 3000);
+    };
+
 
     const handleGeneratePassword = () => {
         let password = '';
@@ -195,8 +298,8 @@ export default function Options() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
                                     className={`flex items-center gap-2 py-4 border-b-2 transition-colors ${activeTab === tab.id
-                                            ? 'border-primary-500 text-primary-400'
-                                            : 'border-transparent text-dark-400 hover:text-dark-200'
+                                        ? 'border-primary-500 text-primary-400'
+                                        : 'border-transparent text-dark-400 hover:text-dark-200'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -232,7 +335,7 @@ export default function Options() {
                                 <Plus className="w-4 h-4" />
                                 Add Password
                             </button>
-                            <button onClick={handleExport} className="btn btn-secondary flex items-center gap-2">
+                            <button onClick={() => handleExport('json')} className="btn btn-secondary flex items-center gap-2">
                                 <Download className="w-4 h-4" />
                                 Export
                             </button>
@@ -368,8 +471,8 @@ export default function Options() {
                                         key={preset.id}
                                         onClick={() => setGeneratorPreset(preset.id as typeof generatorPreset)}
                                         className={`p-4 rounded-xl border text-left transition-all ${generatorPreset === preset.id
-                                                ? 'border-primary-500 bg-primary-500/10'
-                                                : 'border-dark-600 hover:border-dark-500'
+                                            ? 'border-primary-500 bg-primary-500/10'
+                                            : 'border-dark-600 hover:border-dark-500'
                                             }`}
                                     >
                                         <div className="font-medium">{preset.label}</div>
@@ -453,6 +556,14 @@ export default function Options() {
                 {/* Settings Tab */}
                 {activeTab === 'settings' && (
                     <div className="max-w-2xl animate-fade-in">
+                        {/* Status Message */}
+                        {statusMessage && (
+                            <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${statusMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                {statusMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                                {statusMessage.message}
+                            </div>
+                        )}
+
                         <div className="card mb-6">
                             <h2 className="text-lg font-semibold mb-4">Account</h2>
                             <div className="flex items-center gap-4 p-4 bg-dark-800 rounded-xl">
@@ -473,27 +584,152 @@ export default function Options() {
                         <div className="card mb-6">
                             <h2 className="text-lg font-semibold mb-4">Security</h2>
                             <div className="space-y-4">
-                                <button className="w-full text-left p-4 bg-dark-800 rounded-xl hover:bg-dark-700 transition-colors">
-                                    <div className="font-medium">Change Master Password</div>
-                                    <div className="text-sm text-dark-400">Update your vault encryption password</div>
+                                <button
+                                    onClick={() => setShowChangePassword(true)}
+                                    className="w-full text-left p-4 bg-dark-800 rounded-xl hover:bg-dark-700 transition-colors flex items-center gap-3"
+                                >
+                                    <Lock className="w-5 h-5 text-primary-400" />
+                                    <div>
+                                        <div className="font-medium">Change Master Password</div>
+                                        <div className="text-sm text-dark-400">Update your vault encryption password</div>
+                                    </div>
                                 </button>
-                                <button className="w-full text-left p-4 bg-dark-800 rounded-xl hover:bg-dark-700 transition-colors">
+                                <div className="w-full text-left p-4 bg-dark-800 rounded-xl">
                                     <div className="font-medium">Auto-lock Timer</div>
                                     <div className="text-sm text-dark-400">Lock vault after 5 minutes of inactivity</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card mb-6">
+                            <h2 className="text-lg font-semibold mb-4">Export Data</h2>
+                            <p className="text-sm text-dark-400 mb-4">Download your passwords in a portable format. Keep exported files secure!</p>
+                            <div className="flex gap-3 flex-wrap">
+                                <button onClick={() => handleExport('json')} className="btn btn-secondary flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    Export JSON
+                                </button>
+                                <button onClick={() => handleExport('csv')} className="btn btn-secondary flex items-center gap-2">
+                                    <Download className="w-4 h-4" />
+                                    Export CSV
                                 </button>
                             </div>
                         </div>
 
                         <div className="card">
-                            <h2 className="text-lg font-semibold mb-4">Data</h2>
-                            <div className="flex gap-3">
-                                <button onClick={handleExport} className="btn btn-secondary flex items-center gap-2">
-                                    <Download className="w-4 h-4" />
-                                    Export Vault
+                            <h2 className="text-lg font-semibold mb-4">Import Data</h2>
+                            <p className="text-sm text-dark-400 mb-4">Import passwords from another password manager or a backup file. Supports JSON and CSV formats.</p>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImport}
+                                accept=".json,.csv"
+                                className="hidden"
+                            />
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={importLoading}
+                                className="btn btn-secondary flex items-center gap-2"
+                            >
+                                {importLoading ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                        Importing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="w-4 h-4" />
+                                        Import from File
+                                    </>
+                                )}
+                            </button>
+                            <p className="text-xs text-dark-500 mt-3">
+                                Supported formats: JSON (PassCommit export), CSV (domain, username, password, notes columns)
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Change Password Modal */}
+                {showChangePassword && (
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in">
+                        <div className="bg-dark-800 rounded-2xl p-6 w-full max-w-md shadow-2xl animate-slide-up">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center">
+                                    <Lock className="w-5 h-5 text-primary-400" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-lg">Change Master Password</h3>
+                                    <p className="text-sm text-dark-400">All your passwords will be re-encrypted</p>
+                                </div>
+                            </div>
+
+                            {passwordError && (
+                                <div className="mb-4 p-3 bg-red-500/20 text-red-400 rounded-lg flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {passwordError}
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Current Password</label>
+                                    <input
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        className="input"
+                                        placeholder="Enter current master password"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">New Password</label>
+                                    <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="input"
+                                        placeholder="Enter new master password"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+                                    <input
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="input"
+                                        placeholder="Confirm new master password"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setShowChangePassword(false);
+                                        setCurrentPassword('');
+                                        setNewPassword('');
+                                        setConfirmPassword('');
+                                        setPasswordError('');
+                                    }}
+                                    className="btn btn-ghost flex-1"
+                                >
+                                    Cancel
                                 </button>
-                                <button className="btn btn-secondary flex items-center gap-2">
-                                    <Upload className="w-4 h-4" />
-                                    Import Vault
+                                <button
+                                    onClick={handleChangeMasterPassword}
+                                    disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+                                    className="btn btn-primary flex-1 flex items-center justify-center gap-2"
+                                >
+                                    {passwordLoading ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                            Updating...
+                                        </>
+                                    ) : (
+                                        'Update Password'
+                                    )}
                                 </button>
                             </div>
                         </div>
