@@ -8,22 +8,29 @@ interface LoginScreenProps {
 export default function LoginScreen({ onSuccess }: LoginScreenProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    console.log("success from root ")
 
     const handleGoogleLogin = async () => {
         setLoading(true);
         setError('');
 
+        console.log("success from  fn root ")
+
+
         try {
+            console.log("success 111 ")
             const response = await chrome.runtime.sendMessage({ type: 'LOGIN' });
 
             if (response?.success) {
+                console.log("success");
                 onSuccess();
             } else {
+                console.log("erorrrrrr 11111")
                 setError(response?.error || 'Failed to sign in');
             }
         } catch (err) {
             setError('Failed to connect. Please try again.');
-            console.error('Login error:', err);
+            console.error('erwwwwwwwess', err);
         } finally {
             setLoading(false);
         }

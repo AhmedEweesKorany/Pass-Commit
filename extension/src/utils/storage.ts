@@ -12,8 +12,10 @@ const STORAGE_KEYS = {
   VAULT: 'vault',
   SALT: 'masterSalt',
   SESSION_KEY: 'sessionKey',
+  PERSISTED_KEY: 'persistedVaultKey',
   SETTINGS: 'settings',
 } as const;
+
 
 // In-memory session key (never persisted)
 let sessionKey: CryptoKey | null = null;
@@ -22,16 +24,78 @@ let sessionSalt: Uint8Array | null = null;
 /**
  * Initialize storage with master password
  */
-export async function initializeVault(masterPassword: string): Promise<void> {
-  const salt = generateSalt();
-  sessionSalt = salt;
-  sessionKey = await deriveKey(masterPassword, salt);
+export async function initializeVault(masterPassword: string, salt?: Uint8Array): Promise<void> {
+  const finalSalt = salt || generateSalt();
+  sessionSalt = finalSalt;
+  sessionKey = await deriveKey(masterPassword, finalSalt);
   
   // Store the salt (not the password or key!)
   await chrome.storage.local.set({
-    [STORAGE_KEYS.SALT]: arrayBufferToBase64(salt),
+    [STORAGE_KEYS.SALT]: arrayBufferToBase64(finalSalt),
+  });
+
+  // Export and persist the key for UX (Stay logged in)
+  await persistSessionKey(sessionKey);
+}
+
+/**
+ * Export and save the session key to local storage
+ */
+async function persistSessionKey(key: CryptoKey) {
+  const exported = await crypto.subtle.exportKey('jwk', key);
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.PERSISTED_KEY]: {
+      key: exported,
+      timestamp: Date.now()
+    }
   });
 }
+
+/**
+ * Try to reload the session key from storage (re-hydrate)
+ */
+export async function hydrateVaultSession(): Promise<boolean> {
+  if (sessionKey) return true;
+
+  const result = await chrome.storage.local.get([STORAGE_KEYS.PERSISTED_KEY, STORAGE_KEYS.SALT]);
+  const persisted = result[STORAGE_KEYS.PERSISTED_KEY];
+  const saltBase64 = result[STORAGE_KEYS.SALT];
+
+  if (!persisted || !saltBase64) return false;
+
+  // Check if session has expired (e.g., 30 days)
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  if (Date.now() - persisted.timestamp > THIRTY_DAYS) {
+    await chrome.storage.local.remove(STORAGE_KEYS.PERSISTED_KEY);
+    return false;
+  }
+
+  try {
+    sessionKey = await crypto.subtle.importKey(
+      'jwk',
+      persisted.key,
+      { name: 'AES-GCM', length: 256 },
+      true,
+      ['encrypt', 'decrypt']
+    );
+    sessionSalt = base64ToArrayBuffer(saltBase64);
+    return true;
+  } catch (e) {
+    console.error('Failed to hydrate vault session:', e);
+    return false;
+  }
+}
+
+
+/**
+ * Manually set the salt (used for syncing from backend)
+ */
+export async function setSalt(saltBase64: string): Promise<void> {
+  await chrome.storage.local.set({
+     [STORAGE_KEYS.SALT]: saltBase64,
+  });
+}
+
 
 /**
  * Unlock vault with master password
@@ -48,6 +112,9 @@ export async function unlockVault(masterPassword: string): Promise<boolean> {
     sessionSalt = base64ToArrayBuffer(saltBase64);
     sessionKey = await deriveKey(masterPassword, sessionSalt);
     
+    // Persist for "Stay Signed In"
+    await persistSessionKey(sessionKey);
+
     // Verify by trying to decrypt existing vault
     const vault = await getVault();
     return vault !== null;
@@ -58,12 +125,15 @@ export async function unlockVault(masterPassword: string): Promise<boolean> {
   }
 }
 
+
 /**
  * Lock vault (clear session key)
  */
 export function lockVault(): void {
   sessionKey = null;
+  chrome.storage.local.remove('persistedVaultKey');
 }
+
 
 /**
  * Check if vault is unlocked

@@ -50,6 +50,7 @@ export type GeneratorPreset = 'strong' | 'memorable' | 'numeric' | 'custom';
 export type MessageType = 
   | 'GET_CREDENTIALS'
   | 'SAVE_CREDENTIAL'
+  | 'UPDATE_CREDENTIAL'
   | 'DELETE_CREDENTIAL'
   | 'AUTOFILL'
   | 'GENERATE_PASSWORD'
@@ -58,6 +59,8 @@ export type MessageType =
   | 'LOGOUT'
   | 'SET_MASTER_PASSWORD'
   | 'UNLOCK_VAULT'
+  | 'LOCK_VAULT'
+  | 'EXPORT_VAULT'
   | 'GET_DECRYPTED_PASSWORD';
 
 export interface Message<T = unknown> {
