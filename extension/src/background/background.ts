@@ -764,10 +764,19 @@ function parseCSVLine(line: string): string[] {
 
 async function handleChangeMasterPassword(payload: { currentPassword: string; newPassword: string }) {
   try {
-    // First verify the current password
+    // Always attempt to verify current password for security when changing it
+    const isCurrentlyUnlocked = await hydrateVaultSession();
+    
+    // Try to unlock/verify with the provided current password
+    const verifySuccess = await unlockVault(payload.currentPassword);
+    
+    if (!verifySuccess) {
+      return { success: false, error: 'Invalid current master password' };
+    }
+
     const currentKey = getSessionKey();
     if (!currentKey) {
-      return { success: false, error: 'Vault is locked' };
+      return { success: false, error: 'Failed to access vault' };
     }
 
     // Get all credentials and decrypt them with current key
