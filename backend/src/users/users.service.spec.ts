@@ -28,11 +28,14 @@ describe('UsersService', () => {
     }),
   };
 
-  const mockUserModel = {
-    create: jest.fn(),
-    findOne: jest.fn(),
-    findById: jest.fn(),
+  // Mock model that works as a constructor
+  const mockUserModelInstance = {
+    save: jest.fn(),
   };
+
+  const MockUserModel = jest.fn().mockImplementation(() => mockUserModelInstance) as any;
+  MockUserModel.findOne = jest.fn();
+  MockUserModel.findById = jest.fn();
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -42,7 +45,7 @@ describe('UsersService', () => {
         UsersService,
         {
           provide: getModelToken(User.name),
-          useValue: mockUserModel,
+          useValue: MockUserModel,
         },
       ],
     }).compile();
