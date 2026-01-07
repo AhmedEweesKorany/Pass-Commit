@@ -496,7 +496,7 @@ function setupCredentialCapture() {
 }
 
 // Show save prompt
-async function showSavePrompt(username: string): Promise<boolean> {
+async function showSavePrompt(username: string, isSignupForm: boolean = false): Promise<boolean> {
   return new Promise((resolve) => {
     const prompt = document.createElement('div');
     prompt.className = 'passcommit-save-prompt';
@@ -515,6 +515,18 @@ async function showSavePrompt(username: string): Promise<boolean> {
       animation: slideIn 0.3s ease-out;
     `;
 
+    const title = isSignupForm ? 'Save new password?' : 'Save password?';
+    const icon = isSignupForm ? `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    ` : `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z"/>
+        <path d="M8 12L10.5 14.5L16 9"/>
+      </svg>
+    `;
+
     prompt.innerHTML = `
       <style>
         @keyframes slideIn {
@@ -524,14 +536,11 @@ async function showSavePrompt(username: string): Promise<boolean> {
       </style>
       <div style="padding: 16px;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #0ea5e9, #6366f1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-              <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z"/>
-              <path d="M8 12L10.5 14.5L16 9"/>
-            </svg>
+          <div style="width: 40px; height: 40px; background: linear-gradient(135deg, ${isSignupForm ? '#10b981, #059669' : '#0ea5e9, #6366f1'}); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            ${icon}
           </div>
           <div>
-            <div style="font-size: 14px; font-weight: 600; color: #f1f5f9;">Save password?</div>
+            <div style="font-size: 14px; font-weight: 600; color: #f1f5f9;">${title}</div>
             <div style="font-size: 12px; color: #94a3b8;">${username}</div>
           </div>
         </div>
