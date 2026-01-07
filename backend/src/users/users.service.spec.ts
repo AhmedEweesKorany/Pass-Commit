@@ -19,26 +19,30 @@ describe('UsersService', () => {
     picture: 'https://example.com/picture.jpg',
     createdAt: new Date(),
     updatedAt: new Date(),
-    toObject: () => ({
-      _id: mockUserId,
-      googleId: mockGoogleId,
-      email: 'test@example.com',
-      name: 'Test User',
-      picture: 'https://example.com/picture.jpg',
-    }),
   };
 
-  // Mock model that works as a constructor
-  const mockUserModelInstance = {
-    save: jest.fn(),
-  };
+  // Mock model instance with save method
+  let mockUserModelInstance: { save: jest.Mock };
 
-  const MockUserModel = jest.fn().mockImplementation(() => mockUserModelInstance) as any;
-  MockUserModel.findOne = jest.fn();
-  MockUserModel.findById = jest.fn();
+  // Create a mock constructor function
+  let MockUserModel: jest.Mock & {
+    findOne: jest.Mock;
+    findById: jest.Mock;
+  };
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    // Reset mocks for each test
+    mockUserModelInstance = {
+      save: jest.fn(),
+    };
+
+    MockUserModel = jest.fn().mockImplementation((data) => ({
+      ...data,
+      _id: new Types.ObjectId(),
+      save: mockUserModelInstance.save,
+    })) as any;
+    MockUserModel.findOne = jest.fn();
+    MockUserModel.findById = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,18 +71,19 @@ describe('UsersService', () => {
         picture: 'https://example.com/new.jpg',
       };
 
-      const createdUser = {
+      const savedUser = {
         _id: new Types.ObjectId(),
         ...createUserDto,
         createdAt: new Date(),
       };
 
-      mockUserModel.create.mockResolvedValue(createdUser);
+      mockUserModelInstance.save.mockResolvedValue(savedUser);
 
       const result = await service.create(createUserDto);
 
-      expect(result).toEqual(createdUser);
-      expect(mockUserModel.create).toHaveBeenCalledWith(createUserDto);
+      expect(result).toEqual(savedUser);
+      expect(MockUserModel).toHaveBeenCalledWith(createUserDto);
+      expect(mockUserModelInstance.save).toHaveBeenCalled();
     });
 
     it('should create user without picture', async () => {
@@ -88,35 +93,35 @@ describe('UsersService', () => {
         name: 'User',
       };
 
-      const createdUser = {
+      const savedUser = {
         _id: new Types.ObjectId(),
         ...createUserDto,
         createdAt: new Date(),
       };
 
-      mockUserModel.create.mockResolvedValue(createdUser);
+      mockUserModelInstance.save.mockResolvedValue(savedUser);
 
       const result = await service.create(createUserDto);
 
-      expect(result).toEqual(createdUser);
-      expect(mockUserModel.create).toHaveBeenCalledWith(createUserDto);
+      expect(result).toEqual(savedUser);
+      expect(MockUserModel).toHaveBeenCalledWith(createUserDto);
     });
   });
 
   describe('findByGoogleId', () => {
     it('should find user by Google ID', async () => {
-      mockUserModel.findOne.mockReturnValue({
+      MockUserModel.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockUser),
       });
 
       const result = await service.findByGoogleId(mockGoogleId);
 
       expect(result).toEqual(mockUser);
-      expect(mockUserModel.findOne).toHaveBeenCalledWith({ googleId: mockGoogleId });
+      expect(MockUserModel.findOne).toHaveBeenCalledWith({ googleId: mockGoogleId });
     });
 
     it('should return null if user not found by Google ID', async () => {
-      mockUserModel.findOne.mockReturnValue({
+      MockUserModel.findOne.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
 
@@ -128,18 +133,18 @@ describe('UsersService', () => {
 
   describe('findById', () => {
     it('should find user by ID', async () => {
-      mockUserModel.findById.mockReturnValue({
+      MockUserModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(mockUser),
       });
 
       const result = await service.findById(mockUserId.toString());
 
       expect(result).toEqual(mockUser);
-      expect(mockUserModel.findById).toHaveBeenCalledWith(mockUserId.toString());
+      expect(MockUserModel.findById).toHaveBeenCalledWith(mockUserId.toString());
     });
 
     it('should return null if user not found by ID', async () => {
-      mockUserModel.findById.mockReturnValue({
+      MockUserModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(null),
       });
 
