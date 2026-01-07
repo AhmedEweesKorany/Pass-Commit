@@ -664,37 +664,54 @@ async function handleImportVault(payload: { data: string; format: 'json' | 'csv'
 
     // Import each entry
     let imported = 0;
+    const currentVault = await getVault() || [];
+    const newCredentials: Credential[] = [];
+
     for (const entry of entries) {
       if (!entry.domain || !entry.username || !entry.password) continue;
 
-      // Encrypt the password
-      const encryptedPassword = await encrypt(entry.password, key, salt);
-      
-      const credentialData = {
-        domain: entry.domain,
-        username: entry.username,
-        encryptedPassword: JSON.stringify(encryptedPassword),
-        notes: entry.notes,
-      };
-
-      // Sync to backend first
-      let backendId: string | null = null;
       try {
-        const backendResult = await apiFetch('/vault', {
-          method: 'POST',
-          body: JSON.stringify({
-            ...credentialData,
-            encryptedPassword,
-          }),
-        });
-        backendId = backendResult._id || backendResult.id;
-      } catch (e) {
-        console.error('Failed to sync imported credential to backend', e);
-      }
+        // Encrypt the password
+        const encryptedPassword = await encrypt(entry.password, key, salt);
+        
+        const credentialData = {
+          domain: entry.domain,
+          username: entry.username,
+          encryptedPassword: JSON.stringify(encryptedPassword),
+          notes: entry.notes,
+        };
 
-      // Save locally
-      await addCredential(credentialData, backendId || undefined);
-      imported++;
+        // Sync to backend
+        let backendId: string | null = null;
+        try {
+          const backendResult = await apiFetch('/vault', {
+            method: 'POST',
+            body: JSON.stringify({
+              ...credentialData,
+              encryptedPassword,
+            }),
+          });
+          backendId = backendResult._id || backendResult.id;
+        } catch (e) {
+          console.error(`Failed to sync imported credential (${entry.domain}) to backend:`, e);
+        }
+
+        // Prepare for local storage
+        newCredentials.push({
+          ...credentialData,
+          id: backendId || crypto.randomUUID(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+        
+        imported++;
+      } catch (e) {
+        console.error(`Failed to process imported credential (${entry.domain}):`, e);
+      }
+    }
+
+    if (newCredentials.length > 0) {
+      await saveVault([...currentVault, ...newCredentials]);
     }
 
     return { success: true, data: { imported } };
