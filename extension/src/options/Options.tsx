@@ -12,6 +12,8 @@ export default function Options() {
     const [searchQuery, setSearchQuery] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+    const [decryptedPasswords, setDecryptedPasswords] = useState<Record<string, string>>({});
+    const [loadingPasswords, setLoadingPasswords] = useState<Record<string, boolean>>({});
     const [newCredential, setNewCredential] = useState<Partial<Credential> | null>(null);
 
     // Change password modal state
