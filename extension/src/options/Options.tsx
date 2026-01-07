@@ -600,7 +600,7 @@ export default function Options() {
                                         <div className="text-sm text-dark-400">Update your vault encryption password</div>
                                     </div>
                                 </button>
-                             
+
                             </div>
                         </div>
 
@@ -754,6 +754,36 @@ interface CredentialFormProps {
 function CredentialForm({ credential, onSave, onCancel, onGeneratePassword }: CredentialFormProps) {
     const [form, setForm] = useState(credential);
     const [showPwd, setShowPwd] = useState(false);
+    const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+    const [decryptedPassword, setDecryptedPassword] = useState('');
+
+    // Decrypt password when editing existing credential
+    useEffect(() => {
+        const loadDecryptedPassword = async () => {
+            // Only decrypt if this is an existing credential (has an id) and has encrypted data
+            if (credential.id && credential.encryptedPassword && credential.encryptedPassword.startsWith('{')) {
+                setIsLoadingPassword(true);
+                try {
+                    const response = await chrome.runtime.sendMessage({
+                        type: 'GET_DECRYPTED_PASSWORD',
+                        payload: { credentialId: credential.id },
+                    });
+                    if (response?.data) {
+                        setDecryptedPassword(response.data);
+                        setForm(prev => ({ ...prev, encryptedPassword: response.data }));
+                    }
+                } catch (error) {
+                    console.error('Failed to decrypt password:', error);
+                } finally {
+                    setIsLoadingPassword(false);
+                }
+            } else if (credential.encryptedPassword && !credential.encryptedPassword.startsWith('{')) {
+                // Password is already plaintext (e.g., from generator)
+                setDecryptedPassword(credential.encryptedPassword);
+            }
+        };
+        loadDecryptedPassword();
+    }, [credential.id]);
 
     return (
         <div className="space-y-4">
@@ -783,17 +813,25 @@ function CredentialForm({ credential, onSave, onCancel, onGeneratePassword }: Cr
                 <label className="block text-sm font-medium mb-1">Password</label>
                 <div className="flex gap-2">
                     <div className="relative flex-1">
-                        <input
-                            type={showPwd ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            value={form.encryptedPassword || ''}
-                            onChange={(e) => setForm({ ...form, encryptedPassword: e.target.value })}
-                            className="input pr-10"
-                        />
+                        {isLoadingPassword ? (
+                            <div className="input pr-10 flex items-center">
+                                <div className="w-4 h-4 border-2 border-dark-400 border-t-transparent rounded-full animate-spin mr-2" />
+                                <span className="text-dark-400">Decrypting...</span>
+                            </div>
+                        ) : (
+                            <input
+                                type={showPwd ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                value={form.encryptedPassword || ''}
+                                onChange={(e) => setForm({ ...form, encryptedPassword: e.target.value })}
+                                className="input pr-10"
+                            />
+                        )}
                         <button
                             type="button"
                             onClick={() => setShowPwd(!showPwd)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-dark-400"
+                            disabled={isLoadingPassword}
                         >
                             {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -817,7 +855,7 @@ function CredentialForm({ credential, onSave, onCancel, onGeneratePassword }: Cr
                 </button>
                 <button
                     onClick={() => onSave(form)}
-                    disabled={!form.domain || !form.username || !form.encryptedPassword}
+                    disabled={!form.domain || !form.username || !form.encryptedPassword || isLoadingPassword}
                     className="btn btn-primary"
                 >
                     Save
