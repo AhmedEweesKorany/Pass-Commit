@@ -1,4 +1,4 @@
-import { Globe, User, Copy, ExternalLink } from 'lucide-react';
+import { Globe, User, Copy, ExternalLink, Eye, EyeOff, Key } from 'lucide-react';
 import { Credential } from '../../types';
 import { useState } from 'react';
 
@@ -10,6 +10,24 @@ interface CredentialListProps {
 
 export default function CredentialList({ credentials, onAutoFill, compact = false }: CredentialListProps) {
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [copiedField, setCopiedField] = useState<'username' | 'password' | null>(null);
+    const [visiblePasswords, setVisiblePasswords] = useState<Record<string, string>>({});
+    const [loadingPassword, setLoadingPassword] = useState<string | null>(null);
+
+    const handleCopyUsername = async (credential: Credential, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            await navigator.clipboard.writeText(credential.username);
+            setCopiedId(credential.id);
+            setCopiedField('username');
+            setTimeout(() => {
+                setCopiedId(null);
+                setCopiedField(null);
+            }, 2000);
+        } catch (error) {
+            console.error('Failed to copy username:', error);
+        }
+    };
 
     const handleCopyPassword = async (credential: Credential, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -22,10 +40,43 @@ export default function CredentialList({ credentials, onAutoFill, compact = fals
             if (response?.data) {
                 await navigator.clipboard.writeText(response.data);
                 setCopiedId(credential.id);
-                setTimeout(() => setCopiedId(null), 2000);
+                setCopiedField('password');
+                setTimeout(() => {
+                    setCopiedId(null);
+                    setCopiedField(null);
+                }, 2000);
             }
         } catch (error) {
             console.error('Failed to copy password:', error);
+        }
+    };
+
+    const handleTogglePassword = async (credential: Credential, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (visiblePasswords[credential.id]) {
+            // Hide password
+            setVisiblePasswords(prev => {
+                const next = { ...prev };
+                delete next[credential.id];
+                return next;
+            });
+        } else {
+            // Show password - need to decrypt first
+            setLoadingPassword(credential.id);
+            try {
+                const response = await chrome.runtime.sendMessage({
+                    type: 'GET_DECRYPTED_PASSWORD',
+                    payload: { credentialId: credential.id },
+                });
+                if (response?.data) {
+                    setVisiblePasswords(prev => ({ ...prev, [credential.id]: response.data }));
+                }
+            } catch (error) {
+                console.error('Failed to get password:', error);
+            } finally {
+                setLoadingPassword(null);
+            }
         }
     };
 
@@ -64,21 +115,57 @@ export default function CredentialList({ credentials, onAutoFill, compact = fals
                                 <User className="w-3 h-3" />
                                 <span className="truncate">{credential.username}</span>
                             </div>
+                            {/* Password Display */}
+                            {visiblePasswords[credential.id] && (
+                                <div className="flex items-center gap-1 text-sm text-primary-400 mt-1">
+                                    <Key className="w-3 h-3" />
+                                    <span className="font-mono truncate">{visiblePasswords[credential.id]}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* Copy Username */}
+                            <button
+                                onClick={(e) => handleCopyUsername(credential, e)}
+                                className="p-2 rounded-lg hover:bg-dark-600 transition-colors"
+                                title="Copy username"
+                            >
+                                {copiedId === credential.id && copiedField === 'username' ? (
+                                    <span className="text-xs text-green-400">Copied!</span>
+                                ) : (
+                                    <User className="w-4 h-4 text-dark-300" />
+                                )}
+                            </button>
+                            {/* Copy Password */}
                             <button
                                 onClick={(e) => handleCopyPassword(credential, e)}
                                 className="p-2 rounded-lg hover:bg-dark-600 transition-colors"
                                 title="Copy password"
                             >
-                                {copiedId === credential.id ? (
+                                {copiedId === credential.id && copiedField === 'password' ? (
                                     <span className="text-xs text-green-400">Copied!</span>
                                 ) : (
                                     <Copy className="w-4 h-4 text-dark-300" />
                                 )}
                             </button>
+                            {/* Toggle Password Visibility */}
+                            <button
+                                onClick={(e) => handleTogglePassword(credential, e)}
+                                className="p-2 rounded-lg hover:bg-dark-600 transition-colors"
+                                title={visiblePasswords[credential.id] ? "Hide password" : "Show password"}
+                                disabled={loadingPassword === credential.id}
+                            >
+                                {loadingPassword === credential.id ? (
+                                    <div className="w-4 h-4 border-2 border-dark-300 border-t-transparent rounded-full animate-spin" />
+                                ) : visiblePasswords[credential.id] ? (
+                                    <EyeOff className="w-4 h-4 text-dark-300" />
+                                ) : (
+                                    <Eye className="w-4 h-4 text-dark-300" />
+                                )}
+                            </button>
+                            {/* Auto-fill */}
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
