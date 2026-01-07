@@ -288,9 +288,9 @@ Ensure all dependencies are installed:
 npm install
 ```
 
-#### "crypto.subtle is undefined" (Frontend)
-
-The test environment needs Web Crypto API. Vitest with jsdom should provide this. If issues persist, ensure you're using Node.js 18+.
+#### "crypto.subtle is undefined" or "randomUUID" Type Errors
+1. **Web Crypto API**: The test environment needs the Web Crypto API. Vitest with jsdom should provide this automatically in Node.js 18+.
+2. **UUID Mapping**: Newer TypeScript versions require `crypto.randomUUID()` to return a specific template literal type. The test setup file (`src/test/setup.ts`) includes a mock for this that uses a type cast to ensure compatibility with consistent builds. If you encounter build errors in tests, verify this mock is correctly applied.
 
 #### "Jest encountered an unexpected token" (Backend)
 

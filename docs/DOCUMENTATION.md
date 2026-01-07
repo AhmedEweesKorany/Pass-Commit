@@ -228,17 +228,17 @@ domain,username,password,notes
 github.com,user@email.com,decrypted-password,Personal account
 ```
 
-#### Import
-Import passwords from other managers.
-
-**Supported Formats:**
-- JSON (PassCommit format)
-- CSV (with headers: domain, username, password, notes)
-
 **Steps:**
-1. Go to Options page → Import/Export section
-2. Click "Import" and select your file
-3. New credentials are added to your vault
+1. Go to Options page → Vault tab or Settings tab
+2. Click "Import from File" or use the file input
+3. Supports JSON and CSV formats
+4. **PassCommit will only import valid entries** (missing fields are skipped)
+5. **Backend Sync**: All imported entries are automatically synchronized with the security server.
+
+**Robustness Features:**
+- **Batch Processing**: Imported data is saved to the vault in a single batch for high performance.
+- **Session Recovery**: If the background worker has stopped, PassCommit automatically re-hydrates your session before processing the import.
+- **Feedback**: Real-time status messages show exactly how many entries were successfully imported.
 
 ---
 
@@ -247,14 +247,15 @@ Import passwords from other managers.
 Update your master password while preserving all credentials.
 
 **Process:**
-1. Go to Options page → Security section
-2. Enter current master password
+1. Go to Options page → Settings tab → Security section
+2. Enter current master password (required for verification)
 3. Enter new master password (twice for confirmation)
-4. All credentials are re-encrypted with the new key
+4. All credentials are re-encrypted with the new key and synced to the backend.
 
-**Requirements:**
-- Minimum 8 characters
-- Must know current password
+**Security & Robustness:**
+- **Verification**: Unlike standard operations, changing the password requires re-entering the current password to ensure the person making the change is the authorized owner.
+- **Session Re-hydration**: The process handles background worker restarts by using your current password to re-access the vault even if memory was cleared.
+- **Requirements**: Minimum 8 characters. Must know current password.
 
 ---
 
@@ -373,10 +374,20 @@ Access full vault management:
 3. Or right-click extension → "Options"
 
 **Available Sections:**
-- Vault: Full credential management
-- Generator: Password generation tools
-- Import/Export: Backup & restore
-- Security: Change master password
+- **Vault**: Full credential management with search and easy copy buttons.
+- **Generator**: Comprehensive password generation tools with multiple presets.
+- **Settings**:
+    - **Account**: View your connected Google account.
+    - **Security**: Manage your Master Password.
+    - **Export Data**: Robust export to JSON or CSV (handles corrupted entries gracefully).
+    - **Import Data**: Batch import from files with real-time feedback.
+
+**System Notifications:**
+PassCommit features a global notification system at the top of the Options page. You will receive clear, color-coded feedback for:
+- Successful/Failed Exports
+- Import results (with counts)
+- Password change status
+- Background sync errors
 
 ---
 
