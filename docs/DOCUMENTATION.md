@@ -1,6 +1,6 @@
 # PassCommit - Complete Documentation
 
-> A secure password manager Chrome extension with end-to-end encryption, Google OAuth authentication, and smart auto-fill capabilities.
+A secure password manager Chrome extension with end-to-end encryption, Google OAuth authentication, and smart auto-fill capabilities.
 
 ---
 
@@ -11,81 +11,81 @@
 3. [Features](#features)
 4. [Installation & Setup](#installation--setup)
 5. [Usage Guide](#usage-guide)
-6. [API Reference](#api-reference)
-7. [Security](#security)
+6. [Security](#security)
+7. [API Reference](#api-reference)
 8. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Overview
 
-PassCommit is a Chrome extension password manager that prioritizes security through client-side encryption. Your passwords are encrypted locally before being stored, meaning even the server cannot read your credentials.
+PassCommit is a Chrome extension password manager that prioritizes security through client-side encryption. Your passwords are encrypted on your device before being stored, meaning even the server cannot read your credentials.
 
-### Technology Stack
+### Key Principles
 
-| Component | Technology |
-|-----------|------------|
-| Extension | React 18, TypeScript, Tailwind CSS, Vite |
-| Backend | NestJS, MongoDB, Passport.js |
-| Authentication | Google OAuth 2.0, JWT |
-| Encryption | Web Crypto API (PBKDF2 + AES-GCM) |
+- **Zero-Knowledge Architecture**: Server stores only encrypted data
+- **Client-Side Encryption**: All encryption/decryption happens in your browser
+- **Master Password**: Never leaves your device or gets transmitted
+- **Open Source**: Full transparency in security implementation
 
 ---
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Chrome Extension                             │
-│                                                                  │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐  │
-│  │  Popup   │    │ Options  │    │Background│    │ Content  │  │
-│  │   UI     │    │   Page   │    │ Service  │    │  Script  │  │
-│  └────┬─────┘    └────┬─────┘    └────┬─────┘    └────┬─────┘  │
-│       │               │               │               │         │
-│       └───────────────┴───────┬───────┴───────────────┘         │
-│                               │                                  │
-│                     ┌─────────▼─────────┐                       │
-│                     │   Crypto Utils    │                       │
-│                     │  (PBKDF2/AES-GCM) │                       │
-│                     └─────────┬─────────┘                       │
-└───────────────────────────────┼─────────────────────────────────┘
-                                │ Encrypted Data Only
-                                ▼
-┌───────────────────────────────────────────────────────────────┐
-│                     Backend API (NestJS)                       │
-│                                                                │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐       │
-│  │    Auth     │    │    Vault    │    │    Users    │       │
-│  │   Module    │    │   Module    │    │   Module    │       │
-│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘       │
-│         └──────────────────┼──────────────────┘               │
-│                            ▼                                   │
-│                     ┌─────────────┐                           │
-│                     │   MongoDB   │                           │
-│                     └─────────────┘                           │
-└───────────────────────────────────────────────────────────────┘
-```
-
 ### Project Structure
 
 ```
 pass-commit/
-├── extension/           # Chrome Extension
+├── extension/          # Chrome Extension (React + TypeScript + Tailwind)
 │   ├── src/
-│   │   ├── popup/       # Main popup UI
-│   │   ├── options/     # Settings page
-│   │   ├── background/  # Service worker
-│   │   ├── content/     # Form detection & auto-fill
-│   │   ├── utils/       # Crypto & storage utilities
-│   │   └── types/       # TypeScript definitions
-│   └── public/          # Static assets & manifest
-├── backend/             # NestJS API
+│   │   ├── popup/      # Main extension popup UI
+│   │   ├── options/    # Full-page settings & vault management
+│   │   ├── background/ # Service worker for coordination
+│   │   ├── content/    # Form detection & auto-fill
+│   │   ├── utils/      # Crypto & storage utilities
+│   │   └── types/      # TypeScript interfaces
+│   └── public/         # Manifest & static assets
+├── backend/            # NestJS API (MongoDB, JWT, Google OAuth)
 │   └── src/
-│       ├── auth/        # Google OAuth & JWT
-│       ├── vault/       # Encrypted password storage
-│       └── users/       # User management
-└── shared/              # Shared TypeScript types
+│       ├── auth/       # Google OAuth & JWT authentication
+│       ├── vault/      # Encrypted credential storage
+│       └── users/      # User management
+└── shared/             # Shared TypeScript types
+```
+
+### Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| Extension UI | React 18, TypeScript, Tailwind CSS |
+| Build Tool | Vite |
+| Backend | NestJS (Node.js) |
+| Database | MongoDB |
+| Authentication | Google OAuth 2.0, JWT |
+| Encryption | Web Crypto API (PBKDF2 + AES-GCM) |
+
+### Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Chrome Extension                         │
+│  ┌─────────────┐     ┌─────────────┐     ┌──────────────┐  │
+│  │   Master    │ ──→ │   PBKDF2    │ ──→ │  Encryption  │  │
+│  │  Password   │     │   600,000   │     │    Key       │  │
+│  │  (never     │     │ iterations  │     │  (AES-GCM)   │  │
+│  │   stored)   │     └─────────────┘     └──────────────┘  │
+│  └─────────────┘                                │           │
+│                                                 ↓           │
+│                              ┌──────────────────────────┐   │
+│                              │  Encrypted Credentials   │   │
+│                              └────────────┬─────────────┘   │
+└───────────────────────────────────────────┼─────────────────┘
+                                            │
+                                            ↓
+┌───────────────────────────────────────────────────────────┐
+│                     Backend (MongoDB)                      │
+│   Stores ONLY encrypted data - cannot decrypt passwords   │
+└───────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -94,124 +94,182 @@ pass-commit/
 
 ### 1. Google OAuth Authentication
 
-Secure sign-in using your Google account. No separate password required for the extension itself.
+Sign in seamlessly using your Google account. No separate account creation required.
 
 **How it works:**
-1. Click "Sign in with Google" in the popup
-2. Authorize PassCommit to access your basic profile
-3. A JWT token is generated for API authentication
-4. Your session persists across browser restarts
+1. Click "Sign in with Google" in the extension popup
+2. Authorize PassCommit in the Google consent screen
+3. Your account is created/linked automatically
 
-### 2. Master Password Protection
+**Benefits:**
+- No passwords to remember for PassCommit itself
+- Leverages Google's security infrastructure
+- Easy cross-device account access
 
-An additional layer of security that encrypts all your stored passwords.
+---
 
-**Key Details:**
-- Uses PBKDF2 with 600,000 iterations (OWASP recommended)
-- Derives a 256-bit AES-GCM encryption key
-- Master password is **never stored** - only the salt is saved
-- Session key persists for 30 days for convenience
+### 2. Master Password & Vault Encryption
 
-**Setting Up:**
-1. After Google sign-in, you'll be prompted to create a master password
-2. Enter a strong, unique password (minimum 8 characters)
-3. This password encrypts/decrypts all your credentials
+Your vault is protected by a master password that you set after first login.
+
+**Encryption Details:**
+- **Algorithm**: AES-256-GCM (Authenticated Encryption)
+- **Key Derivation**: PBKDF2 with 600,000 iterations (OWASP recommended)
+- **Salt**: 16 bytes, cryptographically random
+- **IV**: 12 bytes, unique per encryption
+
+**Important:**
+- Master password is **never** stored or transmitted
+- If forgotten, vault cannot be recovered (by design)
+- Session persists for 30 days (auto-lock after 5 minutes of inactivity)
+
+---
 
 ### 3. Password Vault Management
 
-Store, organize, and manage your credentials securely.
+Store, organize, and manage all your credentials in one secure place.
 
-**Operations:**
-
-| Action | Description |
-|--------|-------------|
-| **Add** | Save new credentials with domain, username, password, and notes |
-| **Edit** | Update any credential field |
-| **Delete** | Remove credentials (with confirmation) |
-| **Search** | Find credentials by domain or username |
-| **Copy** | Quick copy username or password to clipboard |
+**Features:**
+- Add new credentials (domain, username, password, notes)
+- Edit existing credentials
+- Delete credentials
+- Search by domain or username
+- View password (with visibility toggle)
+- Copy password to clipboard
 
 **Credential Fields:**
-- **Domain**: Website URL (e.g., github.com)
-- **Username**: Your login username or email
-- **Password**: Encrypted and stored securely
-- **Notes**: Optional additional information
+| Field | Description | Required |
+|-------|-------------|----------|
+| Domain | Website URL (e.g., github.com) | Yes |
+| Username | Login username or email | Yes |
+| Password | Account password (encrypted) | Yes |
+| Notes | Additional information | No |
+
+---
 
 ### 4. Smart Auto-Fill
 
-Automatically detects login forms and fills in your credentials.
+PassCommit automatically detects login forms and offers to fill your credentials.
 
-**How It Works:**
-1. PassCommit's content script scans pages for login forms
-2. Detects username fields (email, username inputs)
-3. Detects password fields
-4. Shows a key icon indicator on detected fields
-5. Click the indicator to see matching credentials
-6. Select credentials to auto-fill the form
+**How it works:**
+1. Visit a website with a login form
+2. PassCommit icon appears in username/password fields
+3. Click the icon to see matching credentials
+4. Select a credential to auto-fill
 
-**Supported Form Types:**
+**Supported Form Detection:**
 - Standard login forms
-- Two-page login flows (Google, Microsoft style)
-- Single Sign-On portals
-- Password change forms
+- Email + password combinations
+- Username + password combinations
+- Dynamically loaded forms (SPA support)
+
+**Credential Capture:**
+- Detects form submissions
+- Prompts to save new credentials
+- Works with most login forms
+
+---
 
 ### 5. Password Generator
 
-Generate strong, unique passwords with customizable options.
+Generate strong, unique passwords with multiple presets.
 
-**Generator Types:**
+#### Strong Password
+Cryptographically secure random characters.
 
-| Type | Description | Example |
-|------|-------------|---------|
-| **Strong** | Random characters | `K#9mP$2nL@xQ` |
-| **Memorable** | Word-based | `Tiger-Ocean-Planet-Garden` |
-| **Numeric** | Numbers only (for PINs) | `847291635024` |
-
-**Strong Password Options:**
-- Length: 8-128 characters
-- Include uppercase (A-Z)
-- Include lowercase (a-z)
-- Include numbers (0-9)
-- Include symbols (!@#$%^&*)
+**Options:**
+- Length: 8-64 characters (default: 16)
+- Uppercase letters (A-Z)
+- Lowercase letters (a-z)
+- Numbers (0-9)
+- Symbols (!@#$%^&*...)
 - Exclude ambiguous characters (l, 1, I, O, 0)
+
+**Example:** `K9#mPx$2nQwR4vLs`
+
+#### Memorable Password
+Easy-to-remember word combinations.
+
+**Format:** `Word-Word-Word-Word`
+
+**Example:** `Sunset-Galaxy-Tiger-Ocean`
+
+#### Numeric PIN
+Numbers only for PIN codes.
+
+**Length:** 4-12 digits
+
+**Example:** `847293615204`
+
+---
 
 ### 6. Import & Export
 
-Transfer your passwords to and from PassCommit.
+Transfer your passwords to/from other password managers.
 
-**Export Formats:**
-- **JSON**: Full export with all metadata
-- **CSV**: Compatible with other password managers
+#### Export
+Download your vault in JSON or CSV format.
 
-**Import Formats:**
-- **JSON**: Re-import PassCommit exports
-- **CSV**: Import from other password managers (Chrome, LastPass, 1Password, etc.)
+**JSON Format:**
+```json
+[
+  {
+    "domain": "github.com",
+    "username": "user@email.com",
+    "password": "decrypted-password",
+    "notes": "Personal account"
+  }
+]
+```
 
-**CSV Format Expected:**
+**CSV Format:**
 ```csv
 domain,username,password,notes
-example.com,user@email.com,mypassword123,Optional notes
+github.com,user@email.com,decrypted-password,Personal account
 ```
+
+#### Import
+Import passwords from other managers.
+
+**Supported Formats:**
+- JSON (PassCommit format)
+- CSV (with headers: domain, username, password, notes)
+
+**Steps:**
+1. Go to Options page → Import/Export section
+2. Click "Import" and select your file
+3. New credentials are added to your vault
+
+---
 
 ### 7. Change Master Password
 
 Update your master password while preserving all credentials.
 
 **Process:**
-1. Go to Options → Security
-2. Enter your current master password
-3. Enter and confirm your new master password
+1. Go to Options page → Security section
+2. Enter current master password
+3. Enter new master password (twice for confirmation)
 4. All credentials are re-encrypted with the new key
+
+**Requirements:**
+- Minimum 8 characters
+- Must know current password
+
+---
 
 ### 8. Auto-Lock & Session Management
 
-Automatic security features to protect your vault.
+Security features to protect your vault.
 
-**Features:**
-- **Auto-lock**: Vault locks after 5 minutes of inactivity
-- **Manual lock**: Lock button in popup header
-- **Session persistence**: Stay signed in for 30 days
-- **Full logout**: Clears all local data
+**Auto-Lock:**
+- Vault locks after 5 minutes of inactivity
+- Requires master password to unlock
+
+**Session Persistence:**
+- Stay logged in option (30-day session)
+- Session key stored securely
+- Can manually lock anytime
 
 ---
 
@@ -219,210 +277,192 @@ Automatic security features to protect your vault.
 
 ### Prerequisites
 
-- **Node.js** 18 or higher
-- **MongoDB** (local or Atlas cloud)
-- **Google Cloud Console** project with OAuth credentials
+- Node.js 18+
+- MongoDB (local or Atlas)
+- Google Cloud Console project
 
 ### Backend Setup
 
 ```bash
-# Navigate to backend
 cd backend
-
-# Install dependencies
 npm install
-
-# Copy environment file
 cp .env.example .env
-
-# Edit .env with your configuration:
-# - MONGODB_URI=your_mongodb_connection_string
-# - JWT_SECRET=your_secure_random_secret
-# - GOOGLE_CLIENT_ID=your_google_client_id
-# - GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# Start development server
+# Edit .env with your credentials
 npm run start:dev
+```
+
+**Environment Variables:**
+```env
+PORT=3001
+MONGODB_URI=mongodb://localhost:27017/passcommit
+JWT_SECRET=your-super-secret-jwt-key
+JWT_EXPIRES_IN=7d
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
 ### Extension Setup
 
 ```bash
-# Navigate to extension
 cd extension
-
-# Install dependencies
 npm install
-
-# Start development build with hot reload
 npm run dev
 ```
 
 ### Load Extension in Chrome
 
-1. Open Chrome and go to `chrome://extensions/`
-2. Enable **Developer mode** (toggle in top right)
-3. Click **Load unpacked**
+1. Open `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
 4. Select the `extension/dist` folder
-5. The PassCommit icon appears in your toolbar
 
 ### Google OAuth Configuration
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable **Google+ API** and **Google Identity Toolkit API**
-4. Go to **Credentials** → **Create Credentials** → **OAuth 2.0 Client ID**
-5. Application type: **Chrome Extension**
-6. Add your extension ID to authorized origins
-7. Copy the Client ID to:
-   - `extension/public/manifest.json` → `oauth2.client_id`
-   - `backend/.env` → `GOOGLE_CLIENT_ID`
-8. Copy the Client Secret to `backend/.env` → `GOOGLE_CLIENT_SECRET`
+2. Create a new project
+3. Enable "Google+ API" and "Google Identity Toolkit API"
+4. Create OAuth 2.0 credentials
+5. Add your extension ID to authorized origins
+6. Update `extension/public/manifest.json` with your client ID
+7. Update `backend/.env` with credentials
 
 ---
 
 ## Usage Guide
 
-### First Time Setup
+### First-Time Setup
 
-1. **Click the PassCommit icon** in Chrome toolbar
-2. **Sign in with Google** - Click the button and authorize
-3. **Create Master Password** - Enter a strong password you'll remember
-4. **Ready to use!** - Start adding your credentials
+1. **Install Extension**: Load the extension in Chrome
+2. **Sign In**: Click "Sign in with Google"
+3. **Set Master Password**: Create a strong master password
+4. **Start Saving**: Add your first credential
 
 ### Daily Usage
 
-#### Adding a New Credential
+#### Adding a New Password
 
-1. In the popup, click the **+** button
-2. Or go to **Options** → **Vault** → **Add New**
-3. Fill in:
-   - Domain (e.g., `github.com`)
-   - Username
-   - Password (or click **Generate** for a new one)
-   - Notes (optional)
-4. Click **Save**
+**Method 1: Manual Entry**
+1. Click extension icon → "Add New"
+2. Fill in domain, username, password
+3. Click "Save"
 
-#### Auto-Filling Credentials
+**Method 2: Auto-Capture**
+1. Log into a website normally
+2. PassCommit prompts to save
+3. Click "Save" in the prompt
+
+#### Auto-Filling Passwords
 
 1. Navigate to a login page
-2. Click the **key icon** that appears in the username/password field
-3. Select your saved credentials from the dropdown
-4. Credentials are automatically filled
+2. Click the PassCommit icon in a form field
+3. Select the credential to fill
+4. Form is auto-filled
 
-#### Using Password Generator
+#### Viewing/Copying Passwords
 
-**In Popup (Quick Generate):**
-1. Click the **dice icon** or generator section
-2. Choose preset: Strong, Memorable, or Numeric
-3. Click to copy the generated password
+1. Click extension icon
+2. Find the credential
+3. Click eye icon to reveal password
+4. Click copy icon to copy to clipboard
 
-**In Options (Custom Generate):**
-1. Go to **Options** → **Generator**
-2. Customize all options
-3. Click **Generate**
-4. Copy or use the password
+### Options Page
 
-#### Exporting Your Passwords
+Access full vault management:
+1. Click extension icon
+2. Click gear (⚙️) icon
+3. Or right-click extension → "Options"
 
-1. Go to **Options** → **Import/Export**
-2. Choose format: **JSON** or **CSV**
-3. Click **Export**
-4. File downloads to your computer
+**Available Sections:**
+- Vault: Full credential management
+- Generator: Password generation tools
+- Import/Export: Backup & restore
+- Security: Change master password
 
-#### Importing Passwords
+---
 
-1. Go to **Options** → **Import/Export**
-2. Click **Import**
-3. Select your file (JSON or CSV)
-4. Credentials are added to your vault
+## Security
 
-### Locking & Unlocking
+### Encryption Implementation
 
-**To Lock:**
-- Click the **lock icon** in popup header
-- Or wait for auto-lock (5 minutes inactivity)
+```typescript
+// Key Derivation (PBKDF2)
+const key = await crypto.subtle.deriveKey(
+  {
+    name: 'PBKDF2',
+    salt: salt,
+    iterations: 600000,  // OWASP recommended
+    hash: 'SHA-256',
+  },
+  passwordKey,
+  { name: 'AES-GCM', length: 256 },
+  true,
+  ['encrypt', 'decrypt']
+);
 
-**To Unlock:**
-- Enter your master password when prompted
+// Encryption (AES-256-GCM)
+const ciphertext = await crypto.subtle.encrypt(
+  { name: 'AES-GCM', iv: iv },
+  key,
+  data
+);
+```
 
-### Logging Out
+### Security Best Practices
 
-1. Click **Settings** (gear icon) in popup header
-2. Click **Logout**
-3. All local data is cleared
-4. You'll need to sign in again
+1. **Never reuse your master password** elsewhere
+2. **Enable 2FA on your Google account**
+3. **Lock vault** when leaving computer
+4. **Export backups** periodically
+5. **Use strong generated passwords** for all accounts
+
+### What We Store
+
+| Data | Location | Encrypted |
+|------|----------|-----------|
+| Google ID | Server | No (identifier) |
+| Email | Server | No (identifier) |
+| Credentials | Server | Yes (AES-256) |
+| Master Password | Never | N/A |
+| Encryption Key | Memory only | N/A |
 
 ---
 
 ## API Reference
 
-### Base URL
-```
-http://localhost:3001/api
-```
-
 ### Authentication
 
-All vault endpoints require JWT authentication:
-```
-Authorization: Bearer <jwt_token>
-```
-
-### Endpoints
-
-#### POST `/auth/google`
+#### POST `/api/auth/google`
 Authenticate with Google token.
 
 **Request:**
 ```json
 {
-  "token": "google_access_token"
+  "token": "google-oauth-token"
 }
 ```
 
 **Response:**
 ```json
 {
-  "accessToken": "jwt_token",
+  "accessToken": "jwt-token",
   "user": {
-    "id": "user_id",
-    "email": "user@example.com",
+    "id": "user-id",
+    "email": "user@email.com",
     "name": "User Name",
     "picture": "https://..."
   }
 }
 ```
 
----
+### Vault Operations
 
-#### GET `/vault`
-Get all vault entries for authenticated user.
+All vault endpoints require JWT authentication.
 
-**Response:**
-```json
-[
-  {
-    "_id": "entry_id",
-    "userId": "user_id",
-    "domain": "example.com",
-    "username": "user@email.com",
-    "encryptedPassword": {
-      "ciphertext": "...",
-      "iv": "...",
-      "salt": "..."
-    },
-    "notes": "optional notes",
-    "createdAt": "2024-01-01T00:00:00Z",
-    "updatedAt": "2024-01-01T00:00:00Z"
-  }
-]
-```
+#### GET `/api/vault`
+Get all credentials for authenticated user.
 
----
-
-#### POST `/vault`
-Create a new vault entry.
+#### POST `/api/vault`
+Create new credential.
 
 **Request:**
 ```json
@@ -430,69 +470,28 @@ Create a new vault entry.
   "domain": "example.com",
   "username": "user@email.com",
   "encryptedPassword": {
-    "ciphertext": "...",
-    "iv": "...",
-    "salt": "..."
+    "ciphertext": "base64...",
+    "iv": "base64...",
+    "salt": "base64..."
   },
-  "notes": "optional"
+  "notes": "Optional notes"
 }
 ```
 
----
+#### PUT `/api/vault/:id`
+Update credential.
 
-#### PUT `/vault/:id`
-Update a vault entry.
+#### DELETE `/api/vault/:id`
+Delete credential.
 
----
+#### GET `/api/vault/search?domain=example.com`
+Search credentials by domain.
 
-#### DELETE `/vault/:id`
-Delete a vault entry.
+#### POST `/api/vault/bulk`
+Bulk create credentials.
 
----
-
-#### GET `/vault/search?domain=example.com`
-Search entries by domain.
-
----
-
-#### POST `/vault/bulk`
-Create multiple vault entries.
-
----
-
-#### DELETE `/vault`
-Delete all entries for user.
-
----
-
-## Security
-
-### Encryption Details
-
-| Parameter | Value |
-|-----------|-------|
-| Key Derivation | PBKDF2-SHA256 |
-| Iterations | 600,000 |
-| Salt Length | 16 bytes |
-| Encryption | AES-256-GCM |
-| IV Length | 12 bytes |
-
-### Security Principles
-
-1. **Zero-Knowledge**: Server never sees plaintext passwords
-2. **Client-Side Encryption**: All encryption happens in your browser
-3. **No Master Password Storage**: Only the salt is stored, not the password
-4. **Secure Key Derivation**: OWASP-recommended PBKDF2 parameters
-5. **Authenticated Encryption**: AES-GCM provides integrity verification
-6. **Transport Security**: All API calls use HTTPS
-
-### Best Practices
-
-- Use a **strong, unique master password**
-- **Never share** your master password
-- **Enable 2FA** on your Google account
-- **Export backups** regularly
-- **Lock your vault** when not in use
+#### DELETE `/api/vault`
+Delete all credentials for user.
 
 ---
 
@@ -500,42 +499,43 @@ Delete all entries for user.
 
 ### Extension Won't Load
 
-1. Ensure you're loading from `extension/dist` (not `extension/`)
-2. Run `npm run dev` or `npm run build` first
-3. Check for errors in Chrome's extension details page
+**Solution:**
+1. Ensure you ran `npm run dev` in the extension folder
+2. Verify `dist` folder exists
+3. Check Chrome's extension errors page
 
 ### "Invalid Google Token" Error
 
-1. Verify Google OAuth credentials in manifest.json
-2. Check that extension ID matches authorized origins
-3. Ensure APIs are enabled in Google Cloud Console
+**Solution:**
+1. Verify Google Client ID matches in manifest and backend
+2. Check extension ID is in authorized origins
+3. Ensure Google APIs are enabled
 
-### Master Password Not Working
+### Vault Not Unlocking
 
-1. Enter password carefully (case-sensitive)
-2. If forgotten, you must logout and lose stored passwords
-3. There's no recovery mechanism by design
+**Solution:**
+1. Ensure correct master password
+2. Clear extension storage and re-setup
+3. Check browser console for errors
 
-### Auto-Fill Not Detecting Forms
+### Auto-Fill Not Working
 
+**Solution:**
 1. Refresh the page
-2. Some custom login forms may not be detected
-3. Use manual copy/paste as fallback
+2. Ensure vault is unlocked
+3. Check if domain matches saved credential
+4. Some sites block content scripts
 
 ### Sync Issues
 
-1. Check backend is running (`npm run start:dev`)
-2. Verify MongoDB connection
-3. Check browser console for network errors
+**Solution:**
+1. Ensure backend is running
+2. Check network connection
+3. Verify JWT token is valid
+4. Re-login if necessary
 
 ---
 
-## Version History
+## License
 
-| Version | Changes |
-|---------|---------|
-| 1.0.0 | Initial release with core features |
-
----
-
-*PassCommit - Your passwords, secured by design.*
+MIT License - See LICENSE file for details.
