@@ -372,6 +372,28 @@ async function handleGetCredentials() {
   }
 }
 
+async function handleGetCredentialsForDomain(payload: { domain: string }) {
+  try {
+    if (!isVaultUnlocked()) {
+      return { success: false, error: 'Vault is locked' };
+    }
+
+    const credentials = await findCredentialsByDomain(payload.domain);
+    
+    // Return simplified credential list (without encrypted passwords) for picker display
+    const simplifiedCredentials = credentials.map(cred => ({
+      id: cred.id,
+      username: cred.username,
+      domain: cred.domain,
+    }));
+
+    return { success: true, data: simplifiedCredentials };
+  } catch (error) {
+    console.error('Get credentials for domain error:', error);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
 async function handleSaveCredential(payload: Partial<Credential>) {
   try {
     const key = getSessionKey();
