@@ -567,14 +567,21 @@ async function handleExportVault() {
     if (!key) return { success: false, error: 'Vault is locked' };
 
     // Decrypt all passwords for export
-    const exportedData = await Promise.all(credentials.map(async (cred) => {
-      const encryptedData = JSON.parse(cred.encryptedPassword);
-      const password = await decrypt(encryptedData, key);
-      return {
-        ...cred,
-        password,
-      };
-    }));
+    const exportedData = [];
+    for (const cred of credentials) {
+      try {
+        const encryptedData = JSON.parse(cred.encryptedPassword);
+        const password = await decrypt(encryptedData, key);
+        exportedData.push({
+          ...cred,
+          password,
+        });
+      } catch (e) {
+        console.error(`Failed to decrypt credential for export (${cred.domain}):`, e);
+        // We still include it but without the decrypted password, or we could skip it.
+        // Skipping is probably safer to avoid confusion.
+      }
+    }
 
     return { success: true, data: exportedData };
   } catch (error) {
@@ -595,16 +602,21 @@ async function handleExportVaultCSV() {
     const rows: string[] = ['domain,username,password,notes'];
     
     for (const cred of credentials) {
-      const encryptedData = JSON.parse(cred.encryptedPassword);
-      const password = await decrypt(encryptedData, key);
-      // Escape CSV fields
-      const escapeCsv = (str: string) => {
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-          return `"${str.replace(/"/g, '""')}"`;
-        }
-        return str;
-      };
-      rows.push(`${escapeCsv(cred.domain)},${escapeCsv(cred.username)},${escapeCsv(password)},${escapeCsv(cred.notes || '')}`);
+      try {
+        const encryptedData = JSON.parse(cred.encryptedPassword);
+        const password = await decrypt(encryptedData, key);
+        // Escape CSV fields
+        const escapeCsv = (str: string) => {
+          if (!str) return '';
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        };
+        rows.push(`${escapeCsv(cred.domain)},${escapeCsv(cred.username)},${escapeCsv(password)},${escapeCsv(cred.notes || '')}`);
+      } catch (e) {
+        console.error(`Failed to decrypt credential for CSV export (${cred.domain}):`, e);
+      }
     }
 
     return { success: true, data: rows.join('\n') };
