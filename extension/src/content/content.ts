@@ -28,10 +28,100 @@ let detectedForms: DetectedForm[] = [];
 let injectedOverlays: HTMLElement[] = [];
 
 // Initialize content script
-function initialize() {
+async function initialize() {
   detectLoginForms();
   observeDOM();
   setupMessageListener();
+  
+  // Try to auto-fill if we have matching credentials
+  await attemptAutoFillOnLoad();
+}
+
+// Attempt to auto-fill credentials when page loads
+async function attemptAutoFillOnLoad() {
+  if (detectedForms.length === 0) return;
+  
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'GET_CREDENTIALS_FOR_DOMAIN',
+      payload: { domain: window.location.hostname },
+    });
+
+    if (response?.success && response?.data?.length > 0) {
+      // Show a non-intrusive notification that credentials are available
+      showCredentialsAvailableNotification(response.data.length);
+    }
+  } catch (error) {
+    // Vault might be locked - that's fine
+    console.debug('Could not check for credentials:', error);
+  }
+}
+
+// Show notification that credentials are available
+function showCredentialsAvailableNotification(count: number) {
+  // Don't show if already shown
+  if (document.querySelector('.passcommit-available-notification')) return;
+
+  const notification = document.createElement('div');
+  notification.className = 'passcommit-available-notification';
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2147483647;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideInRight 0.3s ease-out;
+  `;
+
+  notification.innerHTML = `
+    <style>
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    </style>
+    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #0ea5e9, #6366f1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M12 22C17.5 22 22 17.5 22 12C22 6.5 17.5 2 12 2C6.5 2 2 6.5 2 12C2 17.5 6.5 22 12 22Z"/>
+        <path d="M8 12L10.5 14.5L16 9"/>
+      </svg>
+    </div>
+    <div>
+      <div style="font-size: 13px; font-weight: 600; color: #f1f5f9;">${count} password${count > 1 ? 's' : ''} available</div>
+      <div style="font-size: 11px; color: #94a3b8;">Click the icon in the login form to fill</div>
+    </div>
+    <button id="passcommit-dismiss-notification" style="
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      padding: 4px;
+      font-size: 18px;
+      line-height: 1;
+    ">×</button>
+  `;
+
+  document.body.appendChild(notification);
+
+  notification.querySelector('#passcommit-dismiss-notification')?.addEventListener('click', () => {
+    notification.remove();
+  });
+
+  // Auto-dismiss after 5 seconds
+  setTimeout(() => {
+    if (document.body.contains(notification)) {
+      notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 5000);
 }
 
 // Detect login forms on the page
@@ -125,8 +215,10 @@ function addFieldIndicator(field: HTMLInputElement) {
       payload: { domain: window.location.hostname },
     });
 
-    if (response?.data?.length > 0) {
+    if (response?.success && response?.data?.length > 0) {
       showCredentialPicker(field, response.data);
+    } else if (response?.error === 'Vault is locked') {
+      showVaultLockedMessage();
     } else {
       // Open extension popup
       chrome.runtime.sendMessage({ type: 'OPEN_POPUP' });
@@ -135,6 +227,42 @@ function addFieldIndicator(field: HTMLInputElement) {
 
   document.body.appendChild(indicator);
   injectedOverlays.push(indicator);
+}
+
+// Show message that vault is locked
+function showVaultLockedMessage() {
+  const existing = document.querySelector('.passcommit-locked-message');
+  if (existing) existing.remove();
+
+  const message = document.createElement('div');
+  message.className = 'passcommit-locked-message';
+  message.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2147483647;
+    background: #1e293b;
+    border: 1px solid #f59e0b;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  `;
+  message.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      <div>
+        <div style="font-size: 14px; font-weight: 600; color: #f1f5f9;">Vault is locked</div>
+        <div style="font-size: 12px; color: #94a3b8;">Click the PassCommit extension to unlock</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(message);
+  setTimeout(() => message.remove(), 4000);
 }
 
 // Show credential picker near a field
