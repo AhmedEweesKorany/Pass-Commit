@@ -318,6 +318,14 @@ export default function Options() {
 
             {/* Content */}
             <main className="max-w-6xl mx-auto px-6 py-8">
+                {/* Status Message */}
+                {statusMessage && (
+                    <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${statusMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {statusMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        {statusMessage.message}
+                    </div>
+                )}
+
                 {/* Vault Tab */}
                 {activeTab === 'vault' && (
                     <div className="animate-fade-in">
@@ -561,13 +569,6 @@ export default function Options() {
                 {/* Settings Tab */}
                 {activeTab === 'settings' && (
                     <div className="max-w-2xl animate-fade-in">
-                        {/* Status Message */}
-                        {statusMessage && (
-                            <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${statusMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                {statusMessage.type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                                {statusMessage.message}
-                            </div>
-                        )}
 
                         <div className="card mb-6">
                             <h2 className="text-lg font-semibold mb-4">Account</h2>
