@@ -152,21 +152,22 @@ Store, organize, and manage all your credentials in one secure place.
 PassCommit automatically detects login forms and offers to fill your credentials.
 
 **How it works:**
-1. Visit a website with a login form
-2. PassCommit icon appears in username/password fields
-3. Click the icon to see matching credentials
-4. Select a credential to auto-fill
+1. **Auto-Detection**: When you visit a website, PassCommit checks for matching credentials and shows a non-intrusive notification if passwords are available.
+2. **Field Indicators**: A PassCommit icon appears inside detected username and password fields.
+3. **Credential Picker**: Clicking the icon opens a secure picker showing matching accounts.
+4. **Instant Filling**: Selecting an account automatically populates both the username and password fields.
 
 **Supported Form Detection:**
-- Standard login forms
-- Email + password combinations
-- Username + password combinations
-- Dynamically loaded forms (SPA support)
+- Standard login forms and multi-step logins.
+- Email/Username + Password combinations.
+- Dynamically loaded forms (React, Vue, Angular support).
+- Hidden or shadow DOM password fields.
 
-**Credential Capture:**
-- Detects form submissions
-- Prompts to save new credentials
-- Works with most login forms
+**Smart Credential Capture:**
+- **Login Detection**: Detects successful form submissions.
+- **Signup Detection**: Recognizes registration forms (e.g., matching password fields) and offers to save new credentials.
+- **Duplicate Prevention**: Intelligently checks your vault before prompting, avoiding redundant "Save?" alerts for already known accounts.
+- **Security Check**: Only prompts to save if the vault is unlocked.
 
 ---
 
@@ -361,10 +362,15 @@ npm run dev
 
 #### Viewing/Copying Passwords
 
-1. Click extension icon
-2. Find the credential
-3. Click eye icon to reveal password
-4. Click copy icon to copy to clipboard
+**From the Popup:**
+1. Click the extension icon.
+2. **Individual Copy**: Click the User icon to copy the username or the Copy icon to copy the password.
+3. **Reveal**: Click the Eye icon to view the password directly in the list.
+
+**From the Options Page:**
+1. Navigate to the **Vault** tab.
+2. Click the Eye icon to decrypt and show any password.
+3. Click the Edit icon to modify a credential (passwords are automatically decrypted for editing).
 
 ### Options Page
 
