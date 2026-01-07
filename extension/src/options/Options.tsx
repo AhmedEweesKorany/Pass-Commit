@@ -600,10 +600,7 @@ export default function Options() {
                                         <div className="text-sm text-dark-400">Update your vault encryption password</div>
                                     </div>
                                 </button>
-                                <div className="w-full text-left p-4 bg-dark-800 rounded-xl">
-                                    <div className="font-medium">Auto-lock Timer</div>
-                                    <div className="text-sm text-dark-400">Lock vault after 5 minutes of inactivity</div>
-                                </div>
+                             
                             </div>
                         </div>
 

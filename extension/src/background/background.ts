@@ -73,7 +73,8 @@ async function handleMessage(message: Message): Promise<unknown> {
   // Ensure session is hydrated for vault operations
   const vaultOps = [
     'GET_CREDENTIALS', 'SAVE_CREDENTIAL', 'UPDATE_CREDENTIAL', 'DELETE_CREDENTIAL',
-    'EXPORT_VAULT', 'EXPORT_VAULT_CSV', 'IMPORT_VAULT', 'AUTOFILL', 'GET_DECRYPTED_PASSWORD'
+    'EXPORT_VAULT', 'EXPORT_VAULT_CSV', 'IMPORT_VAULT', 'AUTOFILL', 'GET_DECRYPTED_PASSWORD',
+    'CHANGE_MASTER_PASSWORD'
   ];
   
   if (vaultOps.includes(message.type)) {
