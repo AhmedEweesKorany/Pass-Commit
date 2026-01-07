@@ -131,6 +131,9 @@ async function handleMessage(message: Message): Promise<unknown> {
     case 'GET_DECRYPTED_PASSWORD':
       return handleGetDecryptedPassword(message.payload as { credentialId: string });
 
+    case 'GET_CREDENTIALS_FOR_DOMAIN':
+      return handleGetCredentialsForDomain(message.payload as { domain: string });
+
     default:
       return { success: false, error: 'Unknown message type' };
   }
