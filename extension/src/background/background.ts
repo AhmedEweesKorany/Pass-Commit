@@ -70,6 +70,16 @@ chrome.runtime.onMessage.addListener((message: Message, _sender, sendResponse) =
 });
 
 async function handleMessage(message: Message): Promise<unknown> {
+  // Ensure session is hydrated for vault operations
+  const vaultOps = [
+    'GET_CREDENTIALS', 'SAVE_CREDENTIAL', 'UPDATE_CREDENTIAL', 'DELETE_CREDENTIAL',
+    'EXPORT_VAULT', 'EXPORT_VAULT_CSV', 'IMPORT_VAULT', 'AUTOFILL', 'GET_DECRYPTED_PASSWORD'
+  ];
+  
+  if (vaultOps.includes(message.type)) {
+    await hydrateVaultSession();
+  }
+
   switch (message.type) {
     case 'GET_AUTH_STATE':
       return handleGetAuthState();

@@ -107,7 +107,7 @@ export default function Options() {
         try {
             if (format === 'json') {
                 const response = await chrome.runtime.sendMessage({ type: 'EXPORT_VAULT' });
-                if (response?.data) {
+                if (response?.success && response?.data) {
                     const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -116,10 +116,12 @@ export default function Options() {
                     a.click();
                     URL.revokeObjectURL(url);
                     setStatusMessage({ type: 'success', message: 'Passwords exported successfully!' });
+                } else {
+                    setStatusMessage({ type: 'error', message: response?.error || 'Failed to export passwords (Vault might be locked)' });
                 }
             } else {
                 const response = await chrome.runtime.sendMessage({ type: 'EXPORT_VAULT_CSV' });
-                if (response?.data) {
+                if (response?.success && response?.data) {
                     const blob = new Blob([response.data], { type: 'text/csv' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -128,6 +130,8 @@ export default function Options() {
                     a.click();
                     URL.revokeObjectURL(url);
                     setStatusMessage({ type: 'success', message: 'Passwords exported to CSV successfully!' });
+                } else {
+                    setStatusMessage({ type: 'error', message: response?.error || 'Failed to export CSV (Vault might be locked)' });
                 }
             }
         } catch (error) {
@@ -155,7 +159,8 @@ export default function Options() {
                 setStatusMessage({ type: 'success', message: `Successfully imported ${response.data.imported} passwords!` });
                 await initializeOptions();
             } else {
-                setStatusMessage({ type: 'error', message: response?.error || 'Failed to import passwords' });
+                console.error('Import failed:', response?.error);
+                setStatusMessage({ type: 'error', message: response?.error || 'Failed to import passwords. Check file format.' });
             }
         } catch (error) {
             console.error('Failed to import vault:', error);
