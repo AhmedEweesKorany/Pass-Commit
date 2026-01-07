@@ -64,7 +64,8 @@ export type MessageType =
   | 'EXPORT_VAULT'
   | 'EXPORT_VAULT_CSV'
   | 'IMPORT_VAULT'
-  | 'GET_DECRYPTED_PASSWORD';
+  | 'GET_DECRYPTED_PASSWORD'
+  | 'GET_CREDENTIALS_FOR_DOMAIN';
 
 export interface Message<T = unknown> {
   type: MessageType;
