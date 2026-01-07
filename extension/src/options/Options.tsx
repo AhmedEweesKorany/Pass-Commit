@@ -422,19 +422,46 @@ export default function Options() {
 
                                                 {/* Password */}
                                                 <div className="flex items-center gap-2">
-                                                    <code className="font-mono text-sm bg-dark-800 px-3 py-1 rounded">
-                                                        {showPassword[credential.id] ? '••••••••' : '••••••••'}
+                                                    <code className="font-mono text-sm bg-dark-800 px-3 py-1 rounded min-w-[100px]">
+                                                        {loadingPasswords[credential.id] ? (
+                                                            <span className="text-dark-400">Loading...</span>
+                                                        ) : showPassword[credential.id] && decryptedPasswords[credential.id] ? (
+                                                            decryptedPasswords[credential.id]
+                                                        ) : (
+                                                            '••••••••'
+                                                        )}
                                                     </code>
                                                     <button
-                                                        onClick={() =>
-                                                            setShowPassword((prev) => ({
-                                                                ...prev,
-                                                                [credential.id]: !prev[credential.id],
-                                                            }))
-                                                        }
+                                                        onClick={async () => {
+                                                            const isVisible = showPassword[credential.id];
+                                                            if (!isVisible && !decryptedPasswords[credential.id]) {
+                                                                // Need to fetch the decrypted password
+                                                                setLoadingPasswords(prev => ({ ...prev, [credential.id]: true }));
+                                                                try {
+                                                                    const response = await chrome.runtime.sendMessage({
+                                                                        type: 'GET_DECRYPTED_PASSWORD',
+                                                                        payload: { credentialId: credential.id },
+                                                                    });
+                                                                    if (response?.data) {
+                                                                        setDecryptedPasswords(prev => ({ ...prev, [credential.id]: response.data }));
+                                                                        setShowPassword(prev => ({ ...prev, [credential.id]: true }));
+                                                                    }
+                                                                } catch (error) {
+                                                                    console.error('Failed to decrypt password:', error);
+                                                                } finally {
+                                                                    setLoadingPasswords(prev => ({ ...prev, [credential.id]: false }));
+                                                                }
+                                                            } else {
+                                                                // Just toggle visibility
+                                                                setShowPassword(prev => ({ ...prev, [credential.id]: !prev[credential.id] }));
+                                                            }
+                                                        }}
                                                         className="p-2 hover:bg-dark-600 rounded-lg transition-colors"
+                                                        disabled={loadingPasswords[credential.id]}
                                                     >
-                                                        {showPassword[credential.id] ? (
+                                                        {loadingPasswords[credential.id] ? (
+                                                            <div className="w-4 h-4 border-2 border-dark-400 border-t-transparent rounded-full animate-spin" />
+                                                        ) : showPassword[credential.id] ? (
                                                             <EyeOff className="w-4 h-4 text-dark-400" />
                                                         ) : (
                                                             <Eye className="w-4 h-4 text-dark-400" />
