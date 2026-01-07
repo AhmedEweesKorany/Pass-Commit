@@ -427,9 +427,13 @@ function observeDOM() {
 function setupCredentialCapture() {
   document.addEventListener('submit', async (e) => {
     const form = e.target as HTMLFormElement;
-    const passwordField = form.querySelector<HTMLInputElement>('input[type="password"]');
+    const passwordFields = form.querySelectorAll<HTMLInputElement>('input[type="password"]');
     
-    if (!passwordField || !passwordField.value) return;
+    if (passwordFields.length === 0) return;
+    
+    // Get the first password field (main password)
+    const passwordField = passwordFields[0];
+    if (!passwordField.value) return;
 
     let usernameField: HTMLInputElement | null = null;
     for (const selector of USERNAME_SELECTORS) {
@@ -439,16 +443,52 @@ function setupCredentialCapture() {
 
     if (!usernameField?.value) return;
 
+    const domain = window.location.hostname;
+    const username = usernameField.value;
+    const password = passwordField.value;
+
+    // Check if this credential already exists
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_CREDENTIALS_FOR_DOMAIN',
+        payload: { domain },
+      });
+
+      if (response?.success && response?.data) {
+        // Check if this exact username already exists
+        const existingCred = response.data.find((cred: { username: string }) => 
+          cred.username.toLowerCase() === username.toLowerCase()
+        );
+
+        if (existingCred) {
+          // Credential already exists - don't prompt
+          console.debug('PassCommit: Credential already exists for', username);
+          return;
+        }
+      } else if (response?.error === 'Vault is locked') {
+        // Don't prompt if vault is locked
+        return;
+      }
+    } catch (error) {
+      // If we can't check, still show the prompt
+      console.debug('PassCommit: Could not check existing credentials:', error);
+    }
+
+    // Detect if this is a signup form (has confirm password field)
+    const isSignupForm = passwordFields.length >= 2 || 
+      form.querySelector('input[name*="confirm"]') !== null ||
+      form.querySelector('input[autocomplete="new-password"]') !== null;
+
     // Ask user if they want to save
-    const shouldSave = await showSavePrompt(usernameField.value);
+    const shouldSave = await showSavePrompt(username, isSignupForm);
     
     if (shouldSave) {
       chrome.runtime.sendMessage({
         type: 'SAVE_CREDENTIAL',
         payload: {
-          domain: window.location.hostname,
-          username: usernameField.value,
-          encryptedPassword: passwordField.value,
+          domain,
+          username,
+          encryptedPassword: password,
         },
       });
     }
