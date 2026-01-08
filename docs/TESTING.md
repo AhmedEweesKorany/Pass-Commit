@@ -63,7 +63,7 @@ npm install
 | File | Description | Tests |
 |------|-------------|-------|
 | `src/utils/crypto.test.ts` | Cryptographic utilities tests | 36 |
-| `src/test/content.test.ts` | Content script tests (password suggestion, form detection) | 25 |
+| `src/test/content.test.ts` | Content script tests (password suggestion, form detection) | 32 |
 
 ### Test Categories
 
@@ -297,11 +297,11 @@ Ran all test suites.
 ### Frontend Tests (All Passing)
 
 ```
- ✓ src/test/content.test.ts (25 tests) 120ms
- ✓ src/utils/crypto.test.ts (36 tests) 2368ms
+ ✓ src/test/content.test.ts (32 tests) 120ms
+ ✓ src/utils/crypto.test.ts (36 tests) 2359ms
 
  Test Files  2 passed (2)
-      Tests  61 passed (61)
+      Tests  68 passed (68)
    Start at  12:00:00
    Duration  3.75s
 ```
@@ -311,8 +311,8 @@ Ran all test suites.
 | Component | Test Suites | Tests | Status |
 |-----------|-------------|-------|--------|
 | Backend | 3 | 30 | ✅ Passing |
-| Frontend | 2 | 61 | ✅ Passing |
-| **Total** | **5** | **91** | **✅ All Passing** |
+| Frontend | 2 | 68 | ✅ Passing |
+| **Total** | **5** | **98** | **✅ All Passing** |
 
 ---
 
