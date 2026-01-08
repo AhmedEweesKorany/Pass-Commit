@@ -722,10 +722,10 @@ function addFieldIndicator(field: HTMLInputElement, isSignupForm: boolean = fals
   window.addEventListener('scroll', updatePosition);
   window.addEventListener('resize', updatePosition);
 
-  // Click handler - open popup or show context menu
-  indicator.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Click handler for indicator - open popup or show context menu
+  const showCredentials = async () => {
+    // Don't show credentials picker if password suggestion popup is open
+    if (activePopup && document.body.contains(activePopup)) return;
     
     // Request credentials for this domain
     const response = await chrome.runtime.sendMessage({
@@ -737,11 +737,38 @@ function addFieldIndicator(field: HTMLInputElement, isSignupForm: boolean = fals
       showCredentialPicker(field, response.data);
     } else if (response?.error === 'Vault is locked') {
       showVaultLockedMessage();
-    } else {
-      // Open extension popup
-      chrome.runtime.sendMessage({ type: 'OPEN_POPUP' });
     }
+  };
+
+  // Click handler on the indicator icon
+  indicator.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await showCredentials();
   });
+
+  // Add click/focus handler on the field itself (for login forms, not signup)
+  if (!isSignupForm) {
+    field.addEventListener('focus', async () => {
+      // Only show credentials picker if there are saved credentials
+      // Don't interfere with password suggestion popup
+      if (!activePopup || !document.body.contains(activePopup)) {
+        const response = await chrome.runtime.sendMessage({
+          type: 'GET_CREDENTIALS_FOR_DOMAIN',
+          payload: { domain: window.location.hostname },
+        });
+
+        if (response?.success && response?.data?.length > 0) {
+          // Small delay to prevent UI conflicts
+          setTimeout(() => {
+            if (!activePopup || !document.body.contains(activePopup)) {
+              showCredentialPicker(field, response.data);
+            }
+          }, 100);
+        }
+      }
+    });
+  }
 
   document.body.appendChild(indicator);
   injectedOverlays.push(indicator);
