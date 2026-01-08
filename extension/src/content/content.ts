@@ -26,6 +26,7 @@ const PASSWORD_SELECTORS = [
 
 let detectedForms: DetectedForm[] = [];
 let injectedOverlays: HTMLElement[] = [];
+let suggestedPasswordShown: Set<string> = new Set(); // Track fields that have shown suggestion
 
 // Initialize content script
 async function initialize() {
@@ -164,10 +165,18 @@ function detectLoginForms(): DetectedForm[] {
       domain,
     });
 
+    // Detect if this is a signup form
+    const isSignupForm = detectIsSignupForm(form, passwordField);
+
     // Add visual indicator
-    addFieldIndicator(passwordField);
+    addFieldIndicator(passwordField, isSignupForm);
     if (usernameField) {
-      addFieldIndicator(usernameField);
+      addFieldIndicator(usernameField, false);
+    }
+
+    // Setup password suggestion for signup forms
+    if (isSignupForm) {
+      setupPasswordSuggestion(passwordField);
     }
   });
 
@@ -175,8 +184,441 @@ function detectLoginForms(): DetectedForm[] {
   return forms;
 }
 
+// Detect if a form is a signup/registration form
+function detectIsSignupForm(form: HTMLFormElement | null, passwordField: HTMLInputElement): boolean {
+  if (!form) {
+    // Check nearby elements for signup indicators
+    const parent = passwordField.closest('div[class*="signup"], div[class*="register"], div[class*="sign-up"]');
+    return parent !== null || passwordField.autocomplete === 'new-password';
+  }
+
+  // Check for multiple password fields (confirm password)
+  const passwordFields = form.querySelectorAll('input[type="password"]');
+  if (passwordFields.length >= 2) return true;
+
+  // Check for confirm password field
+  if (form.querySelector('input[name*="confirm"], input[id*="confirm"]')) return true;
+
+  // Check for new-password autocomplete
+  if (form.querySelector('input[autocomplete="new-password"]')) return true;
+
+  // Check form action or class for signup indicators
+  const formAction = form.action?.toLowerCase() || '';
+  const formClass = form.className?.toLowerCase() || '';
+  const formId = form.id?.toLowerCase() || '';
+  const signupKeywords = ['signup', 'sign-up', 'register', 'registration', 'create', 'join'];
+  
+  for (const keyword of signupKeywords) {
+    if (formAction.includes(keyword) || formClass.includes(keyword) || formId.includes(keyword)) {
+      return true;
+    }
+  }
+
+  // Check page title or URL
+  const pageTitle = document.title.toLowerCase();
+  const pageUrl = window.location.href.toLowerCase();
+  for (const keyword of signupKeywords) {
+    if (pageTitle.includes(keyword) || pageUrl.includes(keyword)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Generate a secure random password
+function generateSecurePassword(length: number = 16, options: {
+  uppercase?: boolean;
+  lowercase?: boolean;
+  numbers?: boolean;
+  symbols?: boolean;
+} = {}): string {
+  const {
+    uppercase = true,
+    lowercase = true,
+    numbers = true,
+    symbols = true
+  } = options;
+
+  let charset = '';
+  if (uppercase) charset += 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  if (lowercase) charset += 'abcdefghjkmnpqrstuvwxyz';
+  if (numbers) charset += '23456789';
+  if (symbols) charset += '!@#$%^&*()_+-=';
+
+  if (!charset) charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+  const randomValues = crypto.getRandomValues(new Uint32Array(length));
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += charset[randomValues[i] % charset.length];
+  }
+  return password;
+}
+
+// Generate a memorable password
+function generateMemorablePasswordLocal(wordCount: number = 4): string {
+  const words = [
+    'apple', 'banana', 'cherry', 'dragon', 'eagle', 'forest', 'galaxy', 'harbor',
+    'island', 'jungle', 'kitchen', 'lemon', 'mountain', 'november', 'ocean', 'planet',
+    'queen', 'river', 'sunset', 'thunder', 'umbrella', 'valley', 'whisper', 'yellow',
+    'zebra', 'anchor', 'bridge', 'castle', 'diamond', 'engine', 'falcon', 'garden'
+  ];
+  
+  const randomValues = crypto.getRandomValues(new Uint32Array(wordCount));
+  const selectedWords: string[] = [];
+  
+  for (let i = 0; i < wordCount; i++) {
+    const word = words[randomValues[i] % words.length];
+    selectedWords.push(word.charAt(0).toUpperCase() + word.slice(1));
+  }
+  
+  return selectedWords.join('-');
+}
+
+// Show password suggestion popup for signup forms
+function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
+  // Remove existing popup
+  const existingPopup = document.querySelector('.passcommit-password-suggestion');
+  if (existingPopup) existingPopup.remove();
+
+  // Generate initial password
+  let currentPassword = generateSecurePassword(16);
+  let passwordType: 'strong' | 'memorable' = 'strong';
+
+  const popup = document.createElement('div');
+  popup.className = 'passcommit-password-suggestion';
+  
+  const rect = passwordField.getBoundingClientRect();
+  popup.style.cssText = `
+    position: fixed;
+    top: ${rect.bottom + 8}px;
+    left: ${Math.max(rect.left, 10)}px;
+    width: 360px;
+    max-width: calc(100vw - 20px);
+    z-index: 2147483647;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    animation: passcommitSlideIn 0.25s ease-out;
+  `;
+
+  const renderPopup = () => {
+    popup.innerHTML = `
+      <style>
+        @keyframes passcommitSlideIn {
+          from { transform: translateY(-10px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .passcommit-password-suggestion .type-btn {
+          flex: 1;
+          padding: 8px 12px;
+          border: 1px solid #334155;
+          border-radius: 8px;
+          background: transparent;
+          color: #94a3b8;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .passcommit-password-suggestion .type-btn:hover {
+          background: #334155;
+          color: #f1f5f9;
+        }
+        .passcommit-password-suggestion .type-btn.active {
+          background: linear-gradient(135deg, #0ea5e9, #6366f1);
+          border-color: transparent;
+          color: white;
+        }
+        .passcommit-password-suggestion .action-btn {
+          padding: 12px 20px;
+          border: none;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .passcommit-password-suggestion .action-btn.primary {
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          flex: 2;
+        }
+        .passcommit-password-suggestion .action-btn.primary:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .passcommit-password-suggestion .action-btn.secondary {
+          background: #334155;
+          color: #94a3b8;
+          flex: 1;
+        }
+        .passcommit-password-suggestion .action-btn.secondary:hover {
+          background: #475569;
+          color: #f1f5f9;
+        }
+      </style>
+      <div style="padding: 16px;">
+        <!-- Header -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 15px; font-weight: 600; color: #f1f5f9;">Suggested Password</div>
+            <div style="font-size: 12px; color: #64748b;">Use a strong, secure password</div>
+          </div>
+          <button id="passcommit-close-suggestion" style="
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 20px;
+            line-height: 1;
+          ">×</button>
+        </div>
+
+        <!-- Password Type Toggle -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button class="type-btn ${passwordType === 'strong' ? 'active' : ''}" id="passcommit-type-strong">
+            🔒 Strong
+          </button>
+          <button class="type-btn ${passwordType === 'memorable' ? 'active' : ''}" id="passcommit-type-memorable">
+            💭 Memorable
+          </button>
+        </div>
+
+        <!-- Password Display -->
+        <div style="
+          background: #0f172a;
+          border: 1px solid #334155;
+          border-radius: 10px;
+          padding: 14px;
+          margin-bottom: 12px;
+        ">
+          <code id="passcommit-suggested-password" style="
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 15px;
+            color: #10b981;
+            word-break: break-all;
+            display: block;
+            letter-spacing: 0.5px;
+          ">${currentPassword}</code>
+        </div>
+
+        <!-- Regenerate Button -->
+        <button id="passcommit-regenerate" style="
+          width: 100%;
+          padding: 10px;
+          background: transparent;
+          border: 1px dashed #334155;
+          border-radius: 8px;
+          color: #94a3b8;
+          font-size: 13px;
+          cursor: pointer;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.2s;
+        ">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 2v6h-6"/>
+            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+            <path d="M3 22v-6h6"/>
+            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          </svg>
+          Generate Another
+        </button>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 10px;">
+          <button class="action-btn secondary" id="passcommit-dismiss-suggestion">
+            Not Now
+          </button>
+          <button class="action-btn primary" id="passcommit-use-password">
+            Use Password
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    popup.querySelector('#passcommit-close-suggestion')?.addEventListener('click', () => {
+      popup.remove();
+    });
+
+    popup.querySelector('#passcommit-dismiss-suggestion')?.addEventListener('click', () => {
+      popup.remove();
+    });
+
+    popup.querySelector('#passcommit-type-strong')?.addEventListener('click', () => {
+      passwordType = 'strong';
+      currentPassword = generateSecurePassword(16);
+      renderPopup();
+    });
+
+    popup.querySelector('#passcommit-type-memorable')?.addEventListener('click', () => {
+      passwordType = 'memorable';
+      currentPassword = generateMemorablePasswordLocal(4);
+      renderPopup();
+    });
+
+    popup.querySelector('#passcommit-regenerate')?.addEventListener('click', () => {
+      if (passwordType === 'strong') {
+        currentPassword = generateSecurePassword(16);
+      } else {
+        currentPassword = generateMemorablePasswordLocal(4);
+      }
+      const passwordElement = popup.querySelector('#passcommit-suggested-password');
+      if (passwordElement) {
+        passwordElement.textContent = currentPassword;
+        passwordElement.animate([
+          { opacity: 0.5, transform: 'scale(0.98)' },
+          { opacity: 1, transform: 'scale(1)' }
+        ], { duration: 200 });
+      }
+    });
+
+    popup.querySelector('#passcommit-use-password')?.addEventListener('click', () => {
+      // Fill the password field
+      passwordField.value = currentPassword;
+      passwordField.dispatchEvent(new Event('input', { bubbles: true }));
+      passwordField.dispatchEvent(new Event('change', { bubbles: true }));
+
+      // Also fill confirm password field if exists
+      const form = passwordField.closest('form');
+      if (form) {
+        const confirmFields = form.querySelectorAll<HTMLInputElement>(
+          'input[type="password"][name*="confirm"], input[type="password"][id*="confirm"], input[autocomplete="new-password"]'
+        );
+        confirmFields.forEach(field => {
+          if (field !== passwordField) {
+            field.value = currentPassword;
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      }
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(currentPassword).catch(() => {
+        // Ignore clipboard errors
+      });
+
+      // Show confirmation
+      showPasswordCopiedNotification();
+      popup.remove();
+    });
+  };
+
+  renderPopup();
+  document.body.appendChild(popup);
+
+  // Close on click outside after a delay
+  setTimeout(() => {
+    const closeHandler = (e: MouseEvent) => {
+      if (!popup.contains(e.target as Node) && e.target !== passwordField) {
+        popup.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    document.addEventListener('click', closeHandler);
+  }, 200);
+
+  // Position adjustment for viewport
+  setTimeout(() => {
+    const popupRect = popup.getBoundingClientRect();
+    if (popupRect.right > window.innerWidth) {
+      popup.style.left = `${window.innerWidth - popupRect.width - 10}px`;
+    }
+    if (popupRect.bottom > window.innerHeight) {
+      popup.style.top = `${rect.top - popupRect.height - 8}px`;
+    }
+  }, 0);
+}
+
+// Show notification when password is copied
+function showPasswordCopiedNotification() {
+  const existing = document.querySelector('.passcommit-copied-notification');
+  if (existing) existing.remove();
+
+  const notification = document.createElement('div');
+  notification.className = 'passcommit-copied-notification';
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2147483647;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideInRight 0.3s ease-out;
+  `;
+
+  notification.innerHTML = `
+    <style>
+      @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    </style>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+      <path d="M20 6L9 17l-5-5"/>
+    </svg>
+    <div>
+      <div style="font-size: 14px; font-weight: 600; color: white;">Password Applied!</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.8);">Also copied to clipboard</div>
+    </div>
+  `;
+
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.style.animation = 'slideInRight 0.3s ease-out reverse';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Setup password suggestion for signup form fields
+function setupPasswordSuggestion(passwordField: HTMLInputElement) {
+  const fieldId = generateFieldId(passwordField);
+  
+  // Only show once per field
+  if (suggestedPasswordShown.has(fieldId)) return;
+
+  // Show suggestion when field is focused
+  passwordField.addEventListener('focus', () => {
+    // Only show if field is empty and hasn't been shown
+    if (!passwordField.value && !suggestedPasswordShown.has(fieldId)) {
+      showPasswordSuggestionPopup(passwordField);
+      suggestedPasswordShown.add(fieldId);
+    }
+  }, { once: true });
+}
+
+// Generate a unique ID for a field
+function generateFieldId(field: HTMLInputElement): string {
+  return `${field.name || ''}-${field.id || ''}-${field.type}-${field.getBoundingClientRect().top}`;
+}
+
 // Add visual indicator to input field
-function addFieldIndicator(field: HTMLInputElement) {
+function addFieldIndicator(field: HTMLInputElement, isSignupForm: boolean = false) {
   // Check if indicator already exists
   if (field.dataset.passcommitIndicator) return;
   field.dataset.passcommitIndicator = 'true';
