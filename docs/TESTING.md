@@ -62,7 +62,8 @@ npm install
 
 | File | Description | Tests |
 |------|-------------|-------|
-| `src/utils/crypto.test.ts` | Cryptographic utilities tests | 25+ |
+| `src/utils/crypto.test.ts` | Cryptographic utilities tests | 36 |
+| `src/test/content.test.ts` | Content script tests (password suggestion, form detection) | 25 |
 
 ### Test Categories
 
@@ -112,6 +113,43 @@ npm install
    - Generates PIN of specified length
    - Contains only digits 0-9
    - Generates unique PINs
+
+#### Content Script Tests (`content.test.ts`) - NEW!
+
+1. **Password Generation (generateSecurePassword)**
+   - Generates password of specified length
+   - Generates with default length of 16
+   - Generates unique passwords each time
+   - Generates with only uppercase when specified
+   - Generates with only lowercase when specified
+   - Generates with only numbers when specified
+   - Excludes ambiguous characters (0, O, l, 1, I)
+   - Falls back to alphanumeric when no options selected
+
+2. **Memorable Password Generation (generateMemorablePasswordLocal)**
+   - Generates correct number of words
+   - Capitalizes first letter of each word
+   - Uses hyphen as separator
+   - Generates unique passwords
+   - Generates with default 4 words
+
+3. **Signup Form Detection**
+   - Detects signup form with multiple password fields
+   - Detects signup form with confirm password field
+   - Detects signup form with new-password autocomplete
+   - Detects signup form by form class
+   - Detects signup form by register keyword in ID
+   - Does not detect login form as signup
+   - Detects signup by parent container class when no form
+
+4. **Credential Detection**
+   - Detects standard login form
+   - Detects password field by autocomplete attribute
+   - Detects multiple password fields in signup form
+
+5. **Chrome Runtime Messages**
+   - Sends SAVE_CREDENTIAL message with correct payload
+   - Sends GET_CREDENTIALS_FOR_DOMAIN message
 
 ### Running Frontend Tests
 

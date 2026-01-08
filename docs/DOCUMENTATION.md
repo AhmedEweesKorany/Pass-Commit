@@ -171,6 +171,43 @@ PassCommit automatically detects login forms and offers to fill your credentials
 
 ---
 
+### 4.1. Password Suggestion Popup (NEW!)
+
+When PassCommit detects a **signup/registration form**, it automatically offers to suggest a strong password.
+
+**How it works:**
+1. **Signup Form Detection**: PassCommit identifies signup forms using multiple signals:
+   - Multiple password fields (password + confirm password)
+   - Fields with `autocomplete="new-password"`
+   - Form/page containing keywords like "signup", "register", "create", "join"
+   - Confirm password fields (`name*="confirm"` or `id*="confirm"`)
+
+2. **Password Suggestion Popup**: When you focus on a password field in a signup form:
+   - A beautiful popup appears below the field
+   - Displays a pre-generated strong password
+   - Offers two password types: **Strong** (random characters) or **Memorable** (word-based)
+   - Allows regenerating until you find one you like
+
+3. **One-Click Apply**: Click "Use Password" to:
+   - Fill the password field automatically
+   - Fill the confirm password field (if present)
+   - Copy the password to your clipboard
+   - Show a confirmation notification
+
+**Password Types:**
+| Type | Format | Example |
+|------|--------|---------|
+| Strong | 16 random characters (uppercase, lowercase, numbers, symbols) | `K9#mPx$2nQwR4vLs` |
+| Memorable | 4 capitalized words with hyphens | `Sunset-Galaxy-Tiger-Ocean` |
+
+**Benefits:**
+- Never reuse weak passwords again
+- Automatically fills confirm password fields
+- Password copied to clipboard for backup
+- Non-intrusive - dismiss if not needed
+
+---
+
 ### 5. Password Generator
 
 Generate strong, unique passwords with multiple presets.
