@@ -142,7 +142,15 @@ npm install
    - Does not detect login form as signup
    - Detects signup by parent container class when no form
 
-4. **Credential Detection**
+4. **Confirm Password Field Detection** - NEW!
+   - Detects confirm password field by name
+   - Detects retype password field by name
+   - Detects repeat password field by id
+   - Detects verify password by placeholder
+   - Detects password2 field
+   - Correctly handles non-confirm fields (password, username)
+
+5. **Credential Detection**
    - Detects standard login form
    - Detects password field by autocomplete attribute
    - Detects multiple password fields in signup form
