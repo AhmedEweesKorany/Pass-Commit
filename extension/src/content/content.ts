@@ -459,25 +459,68 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
     `;
 
     // Add event listeners
-    popup.querySelector('#passcommit-close-suggestion')?.addEventListener('click', () => {
+    popup.querySelector('#passcommit-close-suggestion')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       popup.remove();
+      activePopup = null;
     });
 
-    popup.querySelector('#passcommit-dismiss-suggestion')?.addEventListener('click', () => {
+    popup.querySelector('#passcommit-dismiss-suggestion')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       popup.remove();
+      activePopup = null;
     });
 
-    popup.querySelector('#passcommit-type-strong')?.addEventListener('click', () => {
-      passwordType = 'strong';
-      currentPassword = generateSecurePassword(16);
-      renderPopup();
+    popup.querySelector('#passcommit-type-strong')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (passwordType !== 'strong') {
+        passwordType = 'strong';
+        currentPassword = generateSecurePassword(16);
+        // Update UI without full re-render
+        updatePasswordDisplay();
+        updateTypeButtons();
+      }
     });
 
-    popup.querySelector('#passcommit-type-memorable')?.addEventListener('click', () => {
-      passwordType = 'memorable';
-      currentPassword = generateMemorablePasswordLocal(4);
-      renderPopup();
+    popup.querySelector('#passcommit-type-memorable')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (passwordType !== 'memorable') {
+        passwordType = 'memorable';
+        currentPassword = generateMemorablePasswordLocal(4);
+        // Update UI without full re-render
+        updatePasswordDisplay();
+        updateTypeButtons();
+      }
     });
+
+    // Helper to update password display with animation
+    const updatePasswordDisplay = () => {
+      const passwordElement = popup.querySelector('#passcommit-suggested-password');
+      if (passwordElement) {
+        passwordElement.textContent = currentPassword;
+        passwordElement.animate([
+          { opacity: 0.5, transform: 'scale(0.98)' },
+          { opacity: 1, transform: 'scale(1)' }
+        ], { duration: 200 });
+      }
+    };
+
+    // Helper to update type button styles
+    const updateTypeButtons = () => {
+      const strongBtn = popup.querySelector('#passcommit-type-strong') as HTMLElement;
+      const memorableBtn = popup.querySelector('#passcommit-type-memorable') as HTMLElement;
+      if (strongBtn && memorableBtn) {
+        if (passwordType === 'strong') {
+          strongBtn.classList.add('active');
+          memorableBtn.classList.remove('active');
+        } else {
+          strongBtn.classList.remove('active');
+          memorableBtn.classList.add('active');
+        }
+      }
+    };
 
     popup.querySelector('#passcommit-regenerate')?.addEventListener('click', () => {
       if (passwordType === 'strong') {
