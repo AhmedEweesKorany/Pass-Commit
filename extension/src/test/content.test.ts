@@ -344,6 +344,75 @@ describe('Content Script - Signup Form Detection', () => {
   });
 });
 
+describe('Content Script - Confirm Password Field Detection', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  // Helper to check if a field is a confirm password field (mirrors content.ts logic)
+  function isConfirmPasswordField(field: HTMLInputElement): boolean {
+    const name = (field.name || '').toLowerCase();
+    const id = (field.id || '').toLowerCase();
+    const placeholder = (field.placeholder || '').toLowerCase();
+    
+    const confirmKeywords = ['confirm', 'retype', 'repeat', 'verify', 'reenter', 're-enter', 'password2', 'pwd2'];
+    
+    for (const keyword of confirmKeywords) {
+      if (name.includes(keyword) || id.includes(keyword) || placeholder.includes(keyword)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  it('detects confirm password field by name', () => {
+    document.body.innerHTML = `<input type="password" name="confirm_password" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(true);
+  });
+
+  it('detects retype password field by name', () => {
+    document.body.innerHTML = `<input type="password" name="retype_password" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(true);
+  });
+
+  it('detects repeat password field by id', () => {
+    document.body.innerHTML = `<input type="password" id="repeat-password" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(true);
+  });
+
+  it('detects verify password by placeholder', () => {
+    document.body.innerHTML = `<input type="password" placeholder="Verify your password" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(true);
+  });
+
+  it('detects password2 field', () => {
+    document.body.innerHTML = `<input type="password" name="password2" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(true);
+  });
+
+  it('does not detect main password field as confirm', () => {
+    document.body.innerHTML = `<input type="password" name="password" id="password" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(false);
+  });
+
+  it('does not detect username field as confirm', () => {
+    document.body.innerHTML = `<input type="text" name="username" />`;
+    const field = document.querySelector('input') as HTMLInputElement;
+    expect(isConfirmPasswordField(field)).toBe(false);
+  });
+});
+
 describe('Content Script - Credential Detection', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
