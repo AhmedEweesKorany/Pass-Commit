@@ -27,6 +27,8 @@ const PASSWORD_SELECTORS = [
 let detectedForms: DetectedForm[] = [];
 let injectedOverlays: HTMLElement[] = [];
 let suggestedPasswordShown: Set<string> = new Set(); // Track fields that have shown suggestion
+let filledPasswordFields: Set<HTMLInputElement> = new Set(); // Track fields filled with suggested password
+let activePopup: HTMLElement | null = null; // Track if popup is currently open
 
 // Initialize content script
 async function initialize() {
