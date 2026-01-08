@@ -349,13 +349,13 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
           transition: all 0.2s;
         }
         .passcommit-password-suggestion .action-btn.primary {
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: linear-gradient(135deg, #0ea5e9, #0284c7);
           color: white;
           flex: 2;
         }
         .passcommit-password-suggestion .action-btn.primary:hover {
           transform: scale(1.02);
-          box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+          box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
         }
         .passcommit-password-suggestion .action-btn.secondary {
           background: #334155;
@@ -370,12 +370,8 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
       <div style="padding: 16px;">
         <!-- Header -->
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-          <div style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
+          <div style="width: 44px; height: 44px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <img src="${chrome.runtime.getURL('icons/logo.png')}" style="width: 50px; height: 50px; object-contain" alt="PassCommit">
           </div>
           <div style="flex: 1;">
             <div style="font-size: 15px; font-weight: 600; color: #f1f5f9;">Suggested Password</div>
@@ -413,7 +409,7 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
           <code id="passcommit-suggested-password" style="
             font-family: 'SF Mono', 'Fira Code', monospace;
             font-size: 15px;
-            color: #10b981;
+            color: #38bdf8;
             word-break: break-all;
             display: block;
             letter-spacing: 0.5px;
