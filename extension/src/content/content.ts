@@ -522,7 +522,8 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
       }
     };
 
-    popup.querySelector('#passcommit-regenerate')?.addEventListener('click', () => {
+    popup.querySelector('#passcommit-regenerate')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (passwordType === 'strong') {
         currentPassword = generateSecurePassword(16);
       } else {
@@ -538,23 +539,28 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
       }
     });
 
-    popup.querySelector('#passcommit-use-password')?.addEventListener('click', () => {
+    popup.querySelector('#passcommit-use-password')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      // Mark the main password field as filled
+      filledPasswordFields.add(passwordField);
+      
       // Fill the password field
       passwordField.value = currentPassword;
       passwordField.dispatchEvent(new Event('input', { bubbles: true }));
       passwordField.dispatchEvent(new Event('change', { bubbles: true }));
 
-      // Also fill confirm password field if exists
+      // Also fill ALL other password fields in the form (confirm password, etc.)
       const form = passwordField.closest('form');
       if (form) {
-        const confirmFields = form.querySelectorAll<HTMLInputElement>(
-          'input[type="password"][name*="confirm"], input[type="password"][id*="confirm"], input[autocomplete="new-password"]'
-        );
-        confirmFields.forEach(field => {
+        const allPasswordFields = form.querySelectorAll<HTMLInputElement>('input[type="password"]');
+        allPasswordFields.forEach(field => {
           if (field !== passwordField) {
             field.value = currentPassword;
             field.dispatchEvent(new Event('input', { bubbles: true }));
             field.dispatchEvent(new Event('change', { bubbles: true }));
+            // Mark as filled so it won't show suggestion popup
+            filledPasswordFields.add(field);
           }
         });
       }
@@ -567,6 +573,7 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
       // Show confirmation
       showPasswordCopiedNotification();
       popup.remove();
+      activePopup = null;
     });
   };
 
@@ -578,11 +585,12 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
     const closeHandler = (e: MouseEvent) => {
       if (!popup.contains(e.target as Node) && e.target !== passwordField) {
         popup.remove();
+        activePopup = null;
         document.removeEventListener('click', closeHandler);
       }
     };
     document.addEventListener('click', closeHandler);
-  }, 200);
+  }, 300);
 
   // Position adjustment for viewport
   setTimeout(() => {
