@@ -599,19 +599,39 @@ function showPasswordCopiedNotification() {
 
 // Setup password suggestion for signup form fields
 function setupPasswordSuggestion(passwordField: HTMLInputElement) {
-  const fieldId = generateFieldId(passwordField);
+  // Skip if this is a confirm password field (will be filled automatically)
+  if (isConfirmPasswordField(passwordField)) return;
   
-  // Only show once per field
-  if (suggestedPasswordShown.has(fieldId)) return;
-
   // Show suggestion when field is focused
   passwordField.addEventListener('focus', () => {
-    // Only show if field is empty and hasn't been shown
-    if (!passwordField.value && !suggestedPasswordShown.has(fieldId)) {
+    // Skip if field was already filled with a suggested password
+    if (filledPasswordFields.has(passwordField)) return;
+    
+    // Skip if popup is already open
+    if (activePopup && document.body.contains(activePopup)) return;
+    
+    // Only show if field is empty
+    if (!passwordField.value) {
       showPasswordSuggestionPopup(passwordField);
-      suggestedPasswordShown.add(fieldId);
     }
-  }, { once: true });
+  });
+}
+
+// Check if a field is a confirm/retype password field
+function isConfirmPasswordField(field: HTMLInputElement): boolean {
+  const name = (field.name || '').toLowerCase();
+  const id = (field.id || '').toLowerCase();
+  const placeholder = (field.placeholder || '').toLowerCase();
+  
+  const confirmKeywords = ['confirm', 'retype', 'repeat', 'verify', 'reenter', 're-enter', 'password2', 'pwd2'];
+  
+  for (const keyword of confirmKeywords) {
+    if (name.includes(keyword) || id.includes(keyword) || placeholder.includes(keyword)) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 // Generate a unique ID for a field
