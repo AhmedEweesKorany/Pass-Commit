@@ -297,12 +297,13 @@ Ran all test suites.
 ### Frontend Tests (All Passing)
 
 ```
- ✓ src/utils/crypto.test.ts (25 tests) 1234ms
+ ✓ src/test/content.test.ts (25 tests) 120ms
+ ✓ src/utils/crypto.test.ts (36 tests) 2368ms
 
- Test Files  1 passed (1)
-      Tests  25 passed (25)
+ Test Files  2 passed (2)
+      Tests  61 passed (61)
    Start at  12:00:00
-   Duration  2.5s
+   Duration  3.75s
 ```
 
 ### Test Summary
@@ -310,8 +311,8 @@ Ran all test suites.
 | Component | Test Suites | Tests | Status |
 |-----------|-------------|-------|--------|
 | Backend | 3 | 30 | ✅ Passing |
-| Frontend | 1 | 25+ | ✅ Passing |
-| **Total** | **4** | **55+** | **✅ All Passing** |
+| Frontend | 2 | 61 | ✅ Passing |
+| **Total** | **5** | **91** | **✅ All Passing** |
 
 ---
 
