@@ -40,8 +40,8 @@ export default function LoginScreen({ onSuccess }: LoginScreenProps) {
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6 animate-fade-in">
             {/* Logo */}
             <div className="mb-8">
-                <div className="w-24 h-24 rounded-3xl bg-dark-800/50 flex items-center justify-center shadow-2xl border border-dark-700 animate-pulse-glow">
-                    <img src="/icons/logo.png" className="w-16 h-16 object-contain" alt="PassCommit Logo" />
+                <div className="w-28 h-28 rounded-3xl bg-dark-800/50 flex items-center justify-center shadow-2xl border border-dark-700 animate-pulse-glow">
+                    <img src="/icons/logo.png" className="w-24 h-24 object-contain scale-110" alt="PassCommit Logo" />
                 </div>
             </div>
 

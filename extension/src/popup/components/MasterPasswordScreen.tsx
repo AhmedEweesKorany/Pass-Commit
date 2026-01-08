@@ -74,9 +74,9 @@ export default function MasterPasswordScreen({ isSetup, onSuccess }: MasterPassw
         <div className="flex flex-col items-center justify-center h-full min-h-[400px] p-6 animate-fade-in">
             {/* Icon */}
             <div className="mb-6">
-                <div className="w-16 h-16 rounded-xl bg-dark-800/50 border border-dark-700 flex items-center justify-center">
+                <div className="w-20 h-20 rounded-xl bg-dark-800/50 border border-dark-700 flex items-center justify-center">
                     {isSetup ? (
-                        <img src="/icons/logo.png" className="w-10 h-10 object-contain" alt="PassCommit" />
+                        <img src="/icons/logo.png" className="w-16 h-16 object-contain scale-110" alt="PassCommit" />
                     ) : (
                         <Lock className="w-8 h-8 text-primary-400" />
                     )}
