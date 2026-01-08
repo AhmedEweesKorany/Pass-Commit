@@ -248,7 +248,7 @@ export default function Options() {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-pulse flex flex-col items-center gap-3">
-                    <img src="/icons/logo.png" className="w-12 h-12 object-contain" alt="PassCommit" />
+                    <img src="/icons/logo.png" className="w-20 h-20 object-contain scale-125" alt="PassCommit" />
                     <p className="text-dark-400">Loading...</p>
                 </div>
             </div>
@@ -258,7 +258,7 @@ export default function Options() {
     if (!authState?.isAuthenticated || !isVaultUnlocked) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center p-8">
-                <img src="/icons/logo.png" className="w-16 h-16 object-contain mb-4" alt="PassCommit" />
+                <img src="/icons/logo.png" className="w-24 h-24 object-contain mb-4 scale-110" alt="PassCommit" />
                 <h1 className="text-2xl font-bold mb-2">Vault Locked</h1>
                 <p className="text-dark-400 mb-6">Please unlock your vault from the extension popup.</p>
                 <button
@@ -277,7 +277,7 @@ export default function Options() {
             <header className="glass border-b border-dark-700 sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/icons/logo.png" className="w-8 h-8 object-contain" alt="PassCommit" />
+                        <img src="/icons/logo.png" className="w-12 h-12 object-contain scale-110" alt="PassCommit" />
                         <h1 className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
                             PassCommit Settings
                         </h1>

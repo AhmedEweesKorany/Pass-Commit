@@ -97,7 +97,7 @@ export default function Popup() {
         return (
             <div className="flex items-center justify-center h-full min-h-[400px]">
                 <div className="animate-pulse flex flex-col items-center gap-3">
-                    <img src="/icons/logo.png" className="w-12 h-12 object-contain" alt="PassCommit" />
+                    <img src="/icons/logo.png" className="w-20 h-20 object-contain scale-125" alt="PassCommit" />
                     <p className="text-dark-400">Loading...</p>
                 </div>
             </div>
@@ -133,7 +133,7 @@ export default function Popup() {
             {/* Header */}
             <header className="flex items-center justify-between p-4 border-b border-dark-700">
                 <div className="flex items-center gap-2">
-                    <img src="/icons/logo.png" className="w-6 h-6 object-contain" alt="PassCommit" />
+                    <img src="/icons/logo.png" className="w-9 h-9 object-contain scale-110" alt="PassCommit" />
                     <h1 className="text-lg font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
                         PassCommit
                     </h1>
