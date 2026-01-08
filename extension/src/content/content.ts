@@ -281,8 +281,10 @@ function generateMemorablePasswordLocal(wordCount: number = 4): string {
 // Show password suggestion popup for signup forms
 function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
   // Remove existing popup
-  const existingPopup = document.querySelector('.passcommit-password-suggestion');
-  if (existingPopup) existingPopup.remove();
+  if (activePopup) {
+    activePopup.remove();
+    activePopup = null;
+  }
 
   // Generate initial password
   let currentPassword = generateSecurePassword(16);
@@ -290,6 +292,7 @@ function showPasswordSuggestionPopup(passwordField: HTMLInputElement) {
 
   const popup = document.createElement('div');
   popup.className = 'passcommit-password-suggestion';
+  activePopup = popup; // Track the active popup
   
   const rect = passwordField.getBoundingClientRect();
   popup.style.cssText = `
