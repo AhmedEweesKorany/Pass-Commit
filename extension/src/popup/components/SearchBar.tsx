@@ -22,7 +22,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
                 placeholder="Search passwords..."
                 value={query}
                 onChange={handleChange}
-                className="input pl-10"
+                className="input pl-12"
                 autoFocus
             />
         </div>

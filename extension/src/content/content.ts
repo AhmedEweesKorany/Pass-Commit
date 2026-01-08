@@ -656,8 +656,7 @@ function setupPasswordSuggestion(passwordField: HTMLInputElement) {
   // Skip if this is a confirm password field (will be filled automatically)
   if (isConfirmPasswordField(passwordField)) return;
   
-  // Show suggestion when field is focused
-  passwordField.addEventListener('focus', () => {
+  const triggerSuggestion = () => {
     // Skip if field was already filled with a suggested password
     if (filledPasswordFields.has(passwordField)) return;
     
@@ -668,7 +667,11 @@ function setupPasswordSuggestion(passwordField: HTMLInputElement) {
     if (!passwordField.value) {
       showPasswordSuggestionPopup(passwordField);
     }
-  });
+  };
+
+  // Show suggestion when field is focused or clicked
+  passwordField.addEventListener('focus', triggerSuggestion);
+  passwordField.addEventListener('click', triggerSuggestion);
 }
 
 // Check if a field is a confirm/retype password field

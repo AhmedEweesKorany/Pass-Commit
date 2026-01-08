@@ -340,7 +340,7 @@ export default function Options() {
                                     placeholder="Search passwords..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="input pl-10"
+                                    className="input pl-12"
                                 />
                             </div>
                             <button
