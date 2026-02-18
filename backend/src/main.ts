@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS for Chrome extension
-  app.enableCors({
+  app.enableCors({ 
     origin: [
       /^chrome-extension:\/\/.*/,
       'http://localhost:5173', // Vite dev server
